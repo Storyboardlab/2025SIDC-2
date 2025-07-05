@@ -5,7 +5,8 @@ import re
 import json
 
 # Google Sheets setup
-def get_worksheet(tab_name):
+@st.cache_resource(ttl=60)
+def get_gspread_client():
     scope = [
         'https://spreadsheets.google.com/feeds',
         'https://www.googleapis.com/auth/drive',
@@ -13,7 +14,12 @@ def get_worksheet(tab_name):
     creds_dict = st.secrets["gcp_service_account"]
     creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
     client = gspread.authorize(creds)
+    return client
+
+@st.cache_resource(ttl=60)
+def get_worksheet(tab_name):
     SPREADSHEET_NAME = '1fN2MkfDK2F_mnYv-7S_YjEHaPlMBdGVL_X_EtNHSItg'
+    client = get_gspread_client()
     sheet = client.open_by_key(SPREADSHEET_NAME)
     return sheet.worksheet(tab_name)
 
