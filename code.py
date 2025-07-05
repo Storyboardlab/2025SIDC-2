@@ -34,15 +34,55 @@ interpreter_date_range_map = [
     ("7/22(화)", "D68:D84"),
 ]
 
-def find_dates_by_range(worksheet, name, date_range_map):
-    found = []
+def find_assignments_by_range(worksheet, name, date_range_map):
+    data = worksheet.get_all_values()
+    assignments = []
     for date_label, cell_range in date_range_map:
-        cell_list = worksheet.range(cell_range)
-        for cell in cell_list:
-            if cell.value and name in cell.value:
-                found.append(date_label)
-                break  # Only need to find once per date
-    return found
+        # Parse the range, e.g., "E34:E61"
+        match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
+        if not match:
+            continue
+        col_start, row_start, col_end, row_end = match.groups()
+        col_start_idx = ord(col_start) - ord('A')
+        col_end_idx = ord(col_end) - ord('A')
+        row_start_idx = int(row_start) - 1
+        row_end_idx = int(row_end) - 1
+
+        for col in range(col_start_idx, col_end_idx + 1):
+            for row in range(row_start_idx, row_end_idx + 1):
+                if row < len(data) and col < len(data[row]):
+                    cell_value = data[row][col]
+                    if cell_value and name in cell_value:
+                        # Look upward in the same column for context
+                        role, language, judge = None, None, None
+                        for lookup_row in range(row-1, max(row_start_idx-1, -1), -1):
+                            above = data[lookup_row][col]
+                            # Role/language
+                            rl_match = re.match(r"\[(심사위원|참가자)\]\s*(영어|중국어|일본어)", above)
+                            if rl_match and not (role and language):
+                                role = rl_match.group(1)
+                                language = rl_match.group(2)
+                            # Judge
+                            judge_match = re.match(r"\[([^\]]+)\]", above)
+                            if judge_match and not judge:
+                                judge = judge_match.group(1)
+                            if role and language and judge:
+                                break
+                        assignments.append({
+                            "date": date_label,
+                            "role": role,
+                            "language": language,
+                            "judge": judge
+                        })
+    # Deduplicate
+    unique = []
+    seen = set()
+    for a in assignments:
+        key = tuple(sorted(a.items()))
+        if key not in seen:
+            seen.add(key)
+            unique.append(a)
+    return unique
 
 st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
@@ -51,23 +91,36 @@ name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
 
 if name:
     try:
-        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
+        a_ws_t = get_worksheet("본선 시간(통역팀-A조)")
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_dates = find_dates_by_range(a_ws_t, name, interpreter_date_range_map)
-        b_dates = find_dates_by_range(b_ws_t, name, interpreter_date_range_map)
+        a_assignments = find_assignments_by_range(a_ws_t, name, interpreter_date_range_map)
+        b_assignments = find_assignments_by_range(b_ws_t, name, interpreter_date_range_map)
 
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
-        a_normal = [d for d in a_dates if d not in special_dates]
-        a_special = [d for d in a_dates if d in special_dates]
+        a_normal = [a for a in a_assignments if a["date"] not in special_dates]
+        a_special = [a for a in a_assignments if a["date"] in special_dates]
+
+        def display_assignments(assignments):
+            if not assignments:
+                st.write("없음")
+                return
+            for a in assignments:
+                if a["role"] == "심사위원" and a.get("judge"):
+                    line = f"{a['date']} - {a['language']} - 심사위원 통역: {a['judge']}"
+                elif a["role"] == "참가자":
+                    line = f"{a['date']} - {a['language']} - 참가자 통역"
+                else:
+                    line = f"{a['date']}"
+                st.write(line)
 
         st.subheader("A조 출근일자 (통역팀)")
-        st.write(", ".join(a_normal) if a_normal else "없음")
+        display_assignments(a_normal)
 
         st.subheader("B조 출근일자 (통역팀)")
-        st.write(", ".join(b_dates) if b_dates else "없음")
+        display_assignments(b_assignments)
 
         st.subheader("7/18 ~ 7/20 출근일자 (통역팀)")
-        st.write(", ".join(a_special) if a_special else "없음")
+        display_assignments(a_special)
 
     except Exception as e:
         st.error(f"스프레드시트 접근 중 오류 발생: {e}")
