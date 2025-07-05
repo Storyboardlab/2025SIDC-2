@@ -17,77 +17,32 @@ def get_worksheet(tab_name):
     sheet = client.open_by_key(SPREADSHEET_NAME)
     return sheet.worksheet(tab_name)
 
-# Helper to parse interpreter assignments in complex tabs
-def parse_interpreter_assignments(worksheet, name):
-    """
-    Parse the worksheet for interpreter assignments matching the given name.
-    Returns a list of dicts: {date, role, language, judge (optional)}
-    """
-    data = worksheet.get_all_values()
-    assignments = []
-    current_date = None
-    current_role = None
-    current_language = None
+# Date and range mapping for 통역팀 tabs
+interpreter_date_range_map = [
+    ("7/10(목)", "F7:F27"),
+    ("7/11(금)", "G10:G27"),
+    ("7/12(토)", "H10:H27"),
+    ("7/13(일)", "B34:B61"),
+    ("7/14(화)", "C34:C61"),
+    ("7/15(화)", "D34:D61"),
+    ("7/16(수)", "E34:E61"),
+    ("7/17(목)", "F34:F61"),
+    ("7/18(금)", "G34:G61"),
+    ("7/19(토)", "H34:H61"),
+    ("7/20(일)", "B68:B84"),
+    ("7/21(월)", "C68:C84"),
+    ("7/22(화)", "D68:D84"),
+]
 
-    for row in data:
-        for cell in row:
-            # Detect date (e.g., "7/18(금)" or "7/16(수), 7/17(목), 7/18(금)")
-            date_match = re.match(r"(\d{1,2}/\d{1,2}\([가-힣]\)(?:,\s*\d{1,2}/\d{1,2}\([가-힣]\))*)", cell)
-            if date_match:
-                # Split by comma and strip whitespace
-                current_date = [d.strip() for d in cell.split(',')]
-                current_role = None
-                current_language = None
-                continue
-
-            # Detect role/language (e.g., "[심사위원] 영어 3" or "[참가자] 중국어 2")
-            role_lang_match = re.match(r"\[(심사위원|참가자)\]\s*(영어|중국어|일본어)", cell)
-            if role_lang_match:
-                current_role = role_lang_match.group(1)
-                current_language = role_lang_match.group(2)
-                continue
-
-            # Detect interpreter assignment (e.g., "[월록] 임어진" or just "임어진")
-            if name in cell:
-                judge = None
-                judge_match = re.match(r"\[([^\]]+)\]\s*(.+)", cell)
-                if judge_match:
-                    judge = judge_match.group(1)
-                    interpreter_name = judge_match.group(2)
-                else:
-                    interpreter_name = cell.strip()
-
-                # Only add if the interpreter name matches exactly (to avoid partial matches)
-                if interpreter_name == name:
-                    # If current_date is a list, create an assignment for each date
-                    if isinstance(current_date, list):
-                        for d in current_date:
-                            assignment = {
-                                "date": d,
-                                "role": current_role,
-                                "language": current_language,
-                            }
-                            if current_role == "심사위원" and judge:
-                                assignment["judge"] = judge
-                            assignments.append(assignment)
-                    else:
-                        assignment = {
-                            "date": current_date,
-                            "role": current_role,
-                            "language": current_language,
-                        }
-                        if current_role == "심사위원" and judge:
-                            assignment["judge"] = judge
-                        assignments.append(assignment)
-    # Deduplicate assignments
-    unique_assignments = []
-    seen = set()
-    for a in assignments:
-        key = tuple(sorted(a.items()))
-        if key not in seen:
-            seen.add(key)
-            unique_assignments.append(a)
-    return unique_assignments
+def find_dates_by_range(worksheet, name, date_range_map):
+    found = []
+    for date_label, cell_range in date_range_map:
+        cell_list = worksheet.range(cell_range)
+        for cell in cell_list:
+            if cell.value and name in cell.value:
+                found.append(date_label)
+                break  # Only need to find once per date
+    return found
 
 st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
@@ -96,34 +51,23 @@ name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
 
 if name:
     try:
-        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
+        a_ws_t = get_worksheet("본선 시간(통역팀-A조)")
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_assignments = parse_interpreter_assignments(a_ws_t, name)
-        b_assignments = parse_interpreter_assignments(b_ws_t, name)
+        a_dates = find_dates_by_range(a_ws_t, name, interpreter_date_range_map)
+        b_dates = find_dates_by_range(b_ws_t, name, interpreter_date_range_map)
 
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
-        a_normal_t = [a for a in a_assignments if a["date"] not in special_dates]
-        a_special_t = [a for a in a_assignments if a["date"] in special_dates]
-
-        def display_assignments(assignments):
-            if not assignments:
-                st.write("없음")
-                return
-            for a in assignments:
-                if a["role"] == "심사위원" and a.get("judge"):
-                    line = f"{a['date']} - {a['language']} - 심사위원: {a['judge']}"
-                else:
-                    line = f"{a['date']} - {a['language']} - {a['role']}"
-                st.write(line)
+        a_normal = [d for d in a_dates if d not in special_dates]
+        a_special = [d for d in a_dates if d in special_dates]
 
         st.subheader("A조 출근일자 (통역팀)")
-        display_assignments(a_normal_t)
+        st.write(", ".join(a_normal) if a_normal else "없음")
 
         st.subheader("B조 출근일자 (통역팀)")
-        display_assignments(b_assignments)
+        st.write(", ".join(b_dates) if b_dates else "없음")
 
         st.subheader("7/18 ~ 7/20 출근일자 (통역팀)")
-        display_assignments(a_special_t)
+        st.write(", ".join(a_special) if a_special else "없음")
 
     except Exception as e:
         st.error(f"스프레드시트 접근 중 오류 발생: {e}")
