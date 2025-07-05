@@ -51,7 +51,7 @@ name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
 
 if name:
     try:
-        a_ws_t = get_worksheet("본선 시간(통역팀-A조)")
+        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
         a_dates = find_dates_by_range(a_ws_t, name, interpreter_date_range_map)
         b_dates = find_dates_by_range(b_ws_t, name, interpreter_date_range_map)
