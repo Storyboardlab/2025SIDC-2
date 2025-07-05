@@ -122,13 +122,13 @@ if name:
                     line = f"{a['date']}"
                 st.write(line)
 
-        st.subheader("A조 출근일자 (통역팀)")
+        st.subheader("A조 출근일자")
         display_assignments(a_normal)
 
-        st.subheader("B조 출근일자 (통역팀)")
+        st.subheader("B조 출근일자")
         display_assignments(b_assignments)
 
-        st.subheader("7/18 ~ 7/20 출근일자 (통역팀)")
+        st.subheader("7/18 ~ 7/20 출근일자")
         display_assignments(a_special)
 
     except Exception as e:
