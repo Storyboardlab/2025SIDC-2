@@ -79,7 +79,15 @@ def parse_interpreter_assignments(worksheet, name):
                         if current_role == "심사위원" and judge:
                             assignment["judge"] = judge
                         assignments.append(assignment)
-    return assignments
+    # Deduplicate assignments
+    unique_assignments = []
+    seen = set()
+    for a in assignments:
+        key = tuple(sorted(a.items()))
+        if key not in seen:
+            seen.add(key)
+            unique_assignments.append(a)
+    return unique_assignments
 
 st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
