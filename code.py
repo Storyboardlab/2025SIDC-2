@@ -54,7 +54,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
                     cell_value = data[row][col]
                     if cell_value and name in cell_value:
                         # Look upward in the same column for context
-                        role, language, judge = None, None, None
+                        role, language = None, None
                         for lookup_row in range(row-1, max(row_start_idx-1, -1), -1):
                             above = data[lookup_row][col]
                             # Role/language
@@ -62,12 +62,21 @@ def find_assignments_by_range(worksheet, name, date_range_map):
                             if rl_match and not (role and language):
                                 role = rl_match.group(1)
                                 language = rl_match.group(2)
-                            # Judge
-                            judge_match = re.match(r"\[([^\]]+)\]", above)
-                            if judge_match and not judge:
-                                judge = judge_match.group(1)
-                            if role and language and judge:
+                            if role and language:
                                 break
+                        # Judge: extract from the interpreter cell itself
+                        judge = None
+                        judge_match = re.match(r"\[([^\]]+)\]", cell_value)
+                        if judge_match:
+                            judge = judge_match.group(1)
+                        # Optionally, fallback: look upward for judge if not found in cell
+                        if not judge:
+                            for lookup_row in range(row-1, max(row_start_idx-1, -1), -1):
+                                above = data[lookup_row][col]
+                                judge_match = re.match(r"\[([^\]]+)\]", above)
+                                if judge_match:
+                                    judge = judge_match.group(1)
+                                    break
                         assignments.append({
                             "date": date_label,
                             "role": role,
