@@ -31,10 +31,11 @@ def parse_interpreter_assignments(worksheet, name):
 
     for row in data:
         for cell in row:
-            # Detect date (e.g., "7/18(금)")
-            date_match = re.match(r"\d{1,2}/\d{1,2}\([가-힣]\)", cell)
+            # Detect date (e.g., "7/18(금)" or "7/16(수), 7/17(목), 7/18(금)")
+            date_match = re.match(r"(\d{1,2}/\d{1,2}\([가-힣]\)(?:,\s*\d{1,2}/\d{1,2}\([가-힣]\))*)", cell)
             if date_match:
-                current_date = cell.strip()
+                # Split by comma and strip whitespace
+                current_date = [d.strip() for d in cell.split(',')]
                 current_role = None
                 current_language = None
                 continue
@@ -58,14 +59,26 @@ def parse_interpreter_assignments(worksheet, name):
 
                 # Only add if the interpreter name matches exactly (to avoid partial matches)
                 if interpreter_name == name:
-                    assignment = {
-                        "date": current_date,
-                        "role": current_role,
-                        "language": current_language,
-                    }
-                    if current_role == "심사위원" and judge:
-                        assignment["judge"] = judge
-                    assignments.append(assignment)
+                    # If current_date is a list, create an assignment for each date
+                    if isinstance(current_date, list):
+                        for d in current_date:
+                            assignment = {
+                                "date": d,
+                                "role": current_role,
+                                "language": current_language,
+                            }
+                            if current_role == "심사위원" and judge:
+                                assignment["judge"] = judge
+                            assignments.append(assignment)
+                    else:
+                        assignment = {
+                            "date": current_date,
+                            "role": current_role,
+                            "language": current_language,
+                        }
+                        if current_role == "심사위원" and judge:
+                            assignment["judge"] = judge
+                        assignments.append(assignment)
     return assignments
 
 st.title("2025 서울국제무용콩쿠르 서포터즈")
