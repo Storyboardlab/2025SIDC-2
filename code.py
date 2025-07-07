@@ -100,7 +100,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울국제무용콩쿠르 서포터즈")
+st.title("2025 서울 국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -144,117 +144,12 @@ else:
     st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
 
 # --- 빈자리 확인 기능 ---
-def find_available_slots(worksheet, date_range_map):
+def find_available_slots(worksheet, date_range_map, allocation_ranges, selected_date=None):
     data = worksheet.get_all_values()
-    # Hardcoded slot row ranges for each date/role/language
-    allocation_ranges = {
-        # 7/10~7/12
-        "7/10(목)": {
-            ("심사위원", "영어"): [13, 13],
-            ("심사위원", "중국어"): [15, 16],
-            ("심사위원", "일본어"): [18, 18],
-            ("참가자", "영어"): [20, 21],
-            ("참가자", "중국어"): [23, 24],
-            ("참가자", "일본어"): [26, 26],
-        },
-        "7/11(금)": {
-            ("심사위원", "영어"): [13, 13],
-            ("심사위원", "중국어"): [15, 16],
-            ("심사위원", "일본어"): [18, 18],
-            ("참가자", "영어"): [20, 21],
-            ("참가자", "중국어"): [23, 24],
-            ("참가자", "일본어"): [26, 26],
-        },
-        "7/12(토)": {
-            ("심사위원", "영어"): [13, 13],
-            ("심사위원", "중국어"): [15, 16],
-            ("심사위원", "일본어"): [18, 18],
-            ("참가자", "영어"): [20, 21],
-            ("참가자", "중국어"): [23, 24],
-            ("참가자", "일본어"): [26, 26],
-        },
-        # 7/13~7/19
-        "7/13(일)": {
-            ("심사위원", "영어"): [37, 41],
-            ("심사위원", "중국어"): [43, 48],
-            ("심사위원", "일본어"): [50, 52],
-            ("참가자", "영어"): [54, 55],
-            ("참가자", "중국어"): [57, 58],
-            ("참가자", "일본어"): [60, 60],
-        },
-        "7/14(화)": {
-            ("심사위원", "영어"): [37, 41],
-            ("심사위원", "중국어"): [43, 48],
-            ("심사위원", "일본어"): [50, 52],
-            ("참가자", "영어"): [54, 55],
-            ("참가자", "중국어"): [57, 58],
-            ("참가자", "일본어"): [60, 60],
-        },
-        "7/15(화)": {
-            ("심사위원", "영어"): [37, 41],
-            ("심사위원", "중국어"): [43, 48],
-            ("심사위원", "일본어"): [50, 52],
-            ("참가자", "영어"): [54, 55],
-            ("참가자", "중국어"): [57, 58],
-            ("참가자", "일본어"): [60, 60],
-        },
-        "7/16(수)": {
-            ("심사위원", "영어"): [37, 41],
-            ("심사위원", "중국어"): [43, 48],
-            ("심사위원", "일본어"): [50, 52],
-            ("참가자", "영어"): [54, 55],
-            ("참가자", "중국어"): [57, 58],
-            ("참가자", "일본어"): [60, 60],
-        },
-        "7/17(목)": {
-            ("심사위원", "영어"): [37, 41],
-            ("심사위원", "중국어"): [43, 48],
-            ("심사위원", "일본어"): [50, 52],
-            ("참가자", "영어"): [54, 55],
-            ("참가자", "중국어"): [57, 58],
-            ("참가자", "일본어"): [60, 60],
-        },
-        "7/18(금)": {
-            ("심사위원", "영어"): [37, 41],
-            ("심사위원", "중국어"): [43, 48],
-            ("심사위원", "일본어"): [50, 52],
-            ("참가자", "영어"): [54, 55],
-            ("참가자", "중국어"): [57, 58],
-            ("참가자", "일본어"): [60, 60],
-        },
-        "7/19(토)": {
-            ("심사위원", "영어"): [37, 41],
-            ("심사위원", "중국어"): [43, 48],
-            ("심사위원", "일본어"): [50, 52],
-            ("참가자", "영어"): [54, 55],
-            ("참가자", "중국어"): [57, 58],
-            ("참가자", "일본어"): [60, 60],
-        },
-        # 7/20~7/22
-        "7/20(일)": {
-            ("심사위원", "영어"): [71, 73],
-            ("심사위원", "중국어"): [75, 75],
-            ("심사위원", "일본어"): [77, 77],
-            ("참가자", "영어"): [79, 80],
-            ("참가자", "중국어"): [82, 83],
-        },
-        "7/21(월)": {
-            ("심사위원", "영어"): [71, 73],
-            ("심사위원", "중국어"): [75, 75],
-            ("심사위원", "일본어"): [77, 77],
-            ("참가자", "영어"): [79, 80],
-            ("참가자", "중국어"): [82, 83],
-        },
-        "7/22(화)": {
-            ("심사위원", "영어"): [71, 73],
-            ("심사위원", "중국어"): [75, 75],
-            ("심사위원", "일본어"): [77, 77],
-            ("참가자", "영어"): [79, 80],
-            ("참가자", "중국어"): [82, 83],
-        },
-    }
     assignments = []
     for date_label, cell_range in date_range_map:
+        if selected_date and date_label != selected_date:
+            continue
         if date_label not in allocation_ranges:
             continue
         match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
@@ -272,10 +167,9 @@ def find_available_slots(worksheet, date_range_map):
                 m = re.search(r"\d+", header_cell)
                 if m:
                     quota = int(m.group())
-            # DEBUG PRINTS
-            print(f"DEBUG: date={date_label}, role={role}, lang={language}, col_idx={col_idx}, header_row={header_row}, header_cell='{header_cell}', quota={quota}, range=({row_start_idx},{row_end_idx})")
             if not header_cell or header_cell.strip() == "" or quota is None:
                 available_count = "N/A"
+                filled = "N/A"
             else:
                 filled = 0
                 for row in range(row_start_idx, row_end_idx + 1):
@@ -285,15 +179,16 @@ def find_available_slots(worksheet, date_range_map):
                             if cell and cell.strip() != "":
                                 filled += 1
                         elif role == "심사위원":
-                            # Filled if judge + interpreter name
-                            m = re.match(r"\[[^\]]+\]\s*(.+)", cell or "")
-                            if m and m.group(1).strip():
+                            m2 = re.match(r"\[[^\]]+\]\s*(.+)", cell or "")
+                            if m2 and m2.group(1).strip():
                                 filled += 1
                 available_count = max(0, quota - filled)
             assignments.append({
                 "date": date_label,
                 "role": role,
                 "language": language,
+                "quota": quota if quota is not None else "N/A",
+                "filled": filled,
                 "available": available_count
             })
     return assignments
@@ -321,8 +216,8 @@ if language_selected:
     try:
         a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
-        b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
+        a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map, allocation_ranges) if slot["language"] == language_selected]
+        b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map, allocation_ranges) if slot["language"] == language_selected]
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
         all_dates = [d for d, _ in interpreter_date_range_map]
         # Main table: exclude special dates
@@ -447,56 +342,18 @@ if language_selected:
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
 
-def debug_available_slots_7_15_A조(worksheet):
-    data = worksheet.get_all_values()
-    col_idx = 3  # D column (0-based)
-    start_row = 35  # D36 (0-based)
-    end_row = 59   # D60 (0-based)
-    i = start_row
-    results = []
-    while i <= end_row:
-        cell = data[i][col_idx] if i < len(data) and col_idx < len(data[i]) else ""
-        # Look for header
-        m = re.match(r"\[(심사위원|참가자)\]\s*(영어|중국어|일본어)\s*(\d+)", cell or "")
-        if m:
-            role, language, quota = m.group(1), m.group(2), int(m.group(3))
-            slot_rows = []
-            j = i + 1
-            while j <= end_row:
-                next_cell = data[j][col_idx] if j < len(data) and col_idx < len(data[j]) else ""
-                # Stop if next header or end
-                if re.match(r"\[(심사위원|참가자)\]", next_cell or ""):
-                    break
-                slot_rows.append(j)
-                j += 1
-            # Count filled
-            filled = 0
-            for row in slot_rows:
-                slot_cell = data[row][col_idx] if row < len(data) and col_idx < len(data[row]) else ""
-                if role == "참가자":
-                    if slot_cell and slot_cell.strip() != "":
-                        filled += 1
-                elif role == "심사위원":
-                    m2 = re.match(r"\[[^\]]+\]\s*(.+)", slot_cell or "")
-                    if m2 and m2.group(1).strip():
-                        filled += 1
-            available = max(0, quota - filled)
-            print(f"7/15(화) {role} {language}: quota={quota}, filled={filled}, available={available}")
-            results.append({"role": role, "language": language, "quota": quota, "filled": filled, "available": available})
-            i = j
-        else:
-            i += 1
-    return results
-
-# Add Streamlit section for 7/15(화) debug output
-if st.checkbox('Show 7/15(화) 빈자리 디버그 (A조 D36:D60)'):
-    try:
-        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
-        debug_results = debug_available_slots_7_15_A조(a_ws_t)
-        if debug_results:
-            import pandas as pd
-            st.table(pd.DataFrame(debug_results))
-        else:
-            st.write('No sections found in D36:D60.')
-    except Exception as e:
-        st.error(f"7/15(화) 디버그 중 오류 발생: {e}")
+# Remove the debug checkbox and add a new section for slot allocation details
+st.markdown("---")
+st.subheader("슬롯 상세 보기 (선택한 날짜/조)")
+selected_date = st.selectbox("날짜 선택", [d for d, _ in interpreter_date_range_map])
+tab_choice = st.radio("조 선택", ["A조", "B조"])
+try:
+    ws = get_worksheet(f"본선 기간(통역팀-{tab_choice})")
+    slot_details = find_available_slots(ws, interpreter_date_range_range_map, allocation_ranges, selected_date=selected_date)
+    if slot_details:
+        import pandas as pd
+        st.table(pd.DataFrame(slot_details))
+    else:
+        st.write("No slot sections found for this date/조.")
+except Exception as e:
+    st.error(f"슬롯 상세 보기 오류: {e}")
