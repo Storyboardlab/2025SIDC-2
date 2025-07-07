@@ -154,16 +154,21 @@ def find_available_slots(worksheet):
         })
     return results
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
 
+a_ws_t = None
+try:
+    a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
+except Exception as e:
+    st.error(f"A조 시트 접근 중 오류 발생: {e}")
+
 if name:
     try:
-        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_assignments = find_assignments_by_range(a_ws_t, name, interpreter_date_range_map)
+        a_assignments = find_assignments_by_range(a_ws_t, name, interpreter_date_range_map) if a_ws_t else []
         b_assignments = find_assignments_by_range(b_ws_t, name, interpreter_date_range_map)
 
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
@@ -192,13 +197,15 @@ if name:
         st.subheader("7/18 ~ 7/20 출근일자")
         display_assignments(a_special)
 
-        st.subheader("7/13(일) 빈 슬롯 현황 (A조)")
-        a_slots = find_available_slots(a_ws_t)
-        for slot in a_slots:
-            st.write(f"{slot['section']} | 헤더: {slot['header']} | 총 슬롯: {slot['total_slots']} | 남은 슬롯: {slot['available_slots']} | 상태: {slot['status']}")
-            st.write(f"  세부: {slot['details']}")
-
     except Exception as e:
         st.error(f"스프레드시트 접근 중 오류 발생: {e}")
+
+# Always show 7/13 slot availability if worksheet loaded
+if a_ws_t:
+    st.subheader("7/13(일) 빈 슬롯 현황 (A조)")
+    a_slots = find_available_slots(a_ws_t)
+    for slot in a_slots:
+        st.write(f"{slot['section']} | 헤더: {slot['header']} | 총 슬롯: {slot['total_slots']} | 남은 슬롯: {slot['available_slots']} | 상태: {slot['status']}")
+        st.write(f"  세부: {slot['details']}")
 else:
     st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
