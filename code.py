@@ -311,35 +311,26 @@ if language_selected:
         st.markdown(table_html, unsafe_allow_html=True)
         # Special section for 7/18~7/20 (A조 only)
         st.markdown("<br/><b>7/18~7/20 빈자리 (A조만 해당)</b>", unsafe_allow_html=True)
-        special_rows = []
+        # Build a dict for each date: {date: {role: count or 'N/A'}}
+        special_dict = {d: {"심사위원": "N/A", "참가자": "N/A"} for d in ["7/18(금)", "7/19(토)", "7/20(일)"]}
         for slot in a_available:
-            if slot["date"] in special_dates:
-                # 참가자 일본어는 N/A
-                if slot["role"] == "참가자" and slot["language"] == "일본어":
-                    special_rows.append({
-                        "날짜": slot["date"],
-                        "역할": slot["role"],
-                        "언어": slot["language"],
-                        "남은 자리": "N/A"
-                    })
-                else:
-                    special_rows.append({
-                        "날짜": slot["date"],
-                        "역할": slot["role"],
-                        "언어": slot["language"],
-                        "남은 자리": slot["available"]
-                    })
-        # Also add N/A rows for 참가자-일본어 if not present
+            if slot["date"] in special_dict:
+                role = slot["role"]
+                # Only for the selected language
+                if slot["language"] == language_selected:
+                    special_dict[slot["date"]][role] = slot["available"]
+        # For 참가자-일본어, ensure N/A if language_selected is 일본어
+        if language_selected == "일본어":
+            for d in special_dict:
+                special_dict[d]["참가자"] = "N/A"
+        # Build rows for table
+        special_rows = []
         for d in ["7/18(금)", "7/19(토)", "7/20(일)"]:
-            if not any(r["날짜"] == d and r["역할"] == "참가자" and r["언어"] == "일본어" for r in special_rows):
-                special_rows.append({
-                    "날짜": d,
-                    "역할": "참가자",
-                    "언어": "일본어",
-                    "남은 자리": "N/A"
-                })
-        # Sort by date, role, language
-        special_rows = sorted(special_rows, key=lambda x: (x["날짜"], x["역할"], x["언어"]))
+            special_rows.append({
+                "날짜": d,
+                "심사위원": special_dict[d]["심사위원"],
+                "참가자": special_dict[d]["참가자"]
+            })
         # Special table
         special_html = """
         <style>
@@ -349,15 +340,14 @@ if language_selected:
             <thead>
                 <tr>
                     <th>날짜</th>
-                    <th>역할</th>
-                    <th>언어</th>
-                    <th>남은 자리</th>
+                    <th>심사위원</th>
+                    <th>참가자</th>
                 </tr>
             </thead>
             <tbody>
         """
         for row in special_rows:
-            special_html += f"<tr><td>{row['날짜']}</td><td>{row['역할']}</td><td>{row['언어']}</td><td>{row['남은 자리']}</td></tr>"
+            special_html += f"<tr><td>{row['날짜']}</td><td>{row['심사위원']}</td><td>{row['참가자']}</td></tr>"
         special_html += "</tbody></table>"
         st.markdown(special_html, unsafe_allow_html=True)
     except Exception as e:
