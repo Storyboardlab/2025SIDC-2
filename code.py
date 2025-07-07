@@ -3,7 +3,6 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import re
 import json
-import pandas as pd
 
 # Google Sheets setup
 @st.cache_resource(ttl=60)
@@ -25,129 +24,21 @@ def get_worksheet(tab_name):
     return sheet.worksheet(tab_name)
 
 # Date and range mapping for 통역팀 tabs
-interpreter_date_range_map = {
-    "7/22(화)": {
-        "참가자": {
-            "중국어": {
-                "col": "D",
-                "header_row": 81,
-                "start_row": 82,
-                "end_row": 83
-            },
-            # ... other languages
-        },
-        # ... other roles
-    },
-    # ... other dates
-}
-
-# Hardcoded slot row ranges for each date/role/language
-allocation_ranges = {
-    # 7/10~7/12
-    "7/10(목)": {
-        ("심사위원", "영어"): [13, 13],
-        ("심사위원", "중국어"): [15, 16],
-        ("심사위원", "일본어"): [18, 18],
-        ("참가자", "영어"): [20, 21],
-        ("참가자", "중국어"): [23, 24],
-        ("참가자", "일본어"): [26, 26],
-    },
-    "7/11(금)": {
-        ("심사위원", "영어"): [13, 13],
-        ("심사위원", "중국어"): [15, 16],
-        ("심사위원", "일본어"): [18, 18],
-        ("참가자", "영어"): [20, 21],
-        ("참가자", "중국어"): [23, 24],
-        ("참가자", "일본어"): [26, 26],
-    },
-    "7/12(토)": {
-        ("심사위원", "영어"): [13, 13],
-        ("심사위원", "중국어"): [15, 16],
-        ("심사위원", "일본어"): [18, 18],
-        ("참가자", "영어"): [20, 21],
-        ("참가자", "중국어"): [23, 24],
-        ("참가자", "일본어"): [26, 26],
-    },
-    # 7/13~7/19
-    "7/13(일)": {
-        ("심사위원", "영어"): [37, 41],
-        ("심사위원", "중국어"): [43, 48],
-        ("심사위원", "일본어"): [50, 52],
-        ("참가자", "영어"): [54, 55],
-        ("참가자", "중국어"): [57, 58],
-        ("참가자", "일본어"): [60, 60],
-    },
-    "7/14(화)": {
-        ("심사위원", "영어"): [37, 41],
-        ("심사위원", "중국어"): [43, 48],
-        ("심사위원", "일본어"): [50, 52],
-        ("참가자", "영어"): [54, 55],
-        ("참가자", "중국어"): [57, 58],
-        ("참가자", "일본어"): [60, 60],
-    },
-    "7/15(화)": {
-        ("심사위원", "영어"): [37, 41],
-        ("심사위원", "중국어"): [43, 48],
-        ("심사위원", "일본어"): [50, 52],
-        ("참가자", "영어"): [54, 55],
-        ("참가자", "중국어"): [57, 58],
-        ("참가자", "일본어"): [60, 60],
-    },
-    "7/16(수)": {
-        ("심사위원", "영어"): [37, 41],
-        ("심사위원", "중국어"): [43, 48],
-        ("심사위원", "일본어"): [50, 52],
-        ("참가자", "영어"): [54, 55],
-        ("참가자", "중국어"): [57, 58],
-        ("참가자", "일본어"): [60, 60],
-    },
-    "7/17(목)": {
-        ("심사위원", "영어"): [37, 41],
-        ("심사위원", "중국어"): [43, 48],
-        ("심사위원", "일본어"): [50, 52],
-        ("참가자", "영어"): [54, 55],
-        ("참가자", "중국어"): [57, 58],
-        ("참가자", "일본어"): [60, 60],
-    },
-    "7/18(금)": {
-        ("심사위원", "영어"): [37, 41],
-        ("심사위원", "중국어"): [43, 48],
-        ("심사위원", "일본어"): [50, 52],
-        ("참가자", "영어"): [54, 55],
-        ("참가자", "중국어"): [57, 58],
-        ("참가자", "일본어"): [60, 60],
-    },
-    "7/19(토)": {
-        ("심사위원", "영어"): [37, 41],
-        ("심사위원", "중국어"): [43, 48],
-        ("심사위원", "일본어"): [50, 52],
-        ("참가자", "영어"): [54, 55],
-        ("참가자", "중국어"): [57, 58],
-        ("참가자", "일본어"): [60, 60],
-    },
-    # 7/20~7/22
-    "7/20(일)": {
-        ("심사위원", "영어"): [71, 73],
-        ("심사위원", "중국어"): [75, 75],
-        ("심사위원", "일본어"): [77, 77],
-        ("참가자", "영어"): [79, 80],
-        ("참가자", "중국어"): [82, 83],
-    },
-    "7/21(월)": {
-        ("심사위원", "영어"): [71, 73],
-        ("심사위원", "중국어"): [75, 75],
-        ("심사위원", "일본어"): [77, 77],
-        ("참가자", "영어"): [79, 80],
-        ("참가자", "중국어"): [82, 83],
-    },
-    "7/22(화)": {
-        ("심사위원", "영어"): [71, 73],
-        ("심사위원", "중국어"): [75, 75],
-        ("심사위원", "일본어"): [77, 77],
-        ("참가자", "영어"): [79, 80],
-        ("참가자", "중국어"): [82, 83],
-    },
-}
+interpreter_date_range_map = [
+    ("7/10(목)", "F7:F27"),
+    ("7/11(금)", "G10:G27"),
+    ("7/12(토)", "H10:H27"),
+    ("7/13(일)", "B34:B61"),
+    ("7/14(화)", "C34:C61"),
+    ("7/15(화)", "D34:D61"),
+    ("7/16(수)", "E34:E61"),
+    ("7/17(목)", "F34:F61"),
+    ("7/18(금)", "G34:G61"),
+    ("7/19(토)", "H34:H61"),
+    ("7/20(일)", "B68:B84"),
+    ("7/21(월)", "C68:C84"),
+    ("7/22(화)", "D68:D84"),
+]
 
 def find_assignments_by_range(worksheet, name, date_range_map):
     data = worksheet.get_all_values()
@@ -208,7 +99,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -250,227 +141,3 @@ if name:
         st.error(f"스프레드시트 접근 중 오류 발생: {e}")
 else:
     st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
-
-# --- 빈자리 확인 기능 ---
-def col_letter_to_index(col_letter):
-    """Convert Excel/Sheets column letter (A, B, C, ...) to 0-based index."""
-    col_letter = col_letter.upper()
-    index = 0
-    for char in col_letter:
-        index = index * 26 + (ord(char) - ord('A') + 1)
-    return index - 1
-
-def find_available_slots(sheet, interpreter_date_range_map):
-    results = []
-    for date, roles in interpreter_date_range_map.items():
-        for role, langs in roles.items():
-            for language, section_info in langs.items():
-                col_letter = section_info['col']
-                col_idx = col_letter_to_index(col_letter)
-                header_row = section_info['header_row']
-                start_row = section_info['start_row']
-                end_row = section_info['end_row']
-
-                header_cell = (
-                    sheet[header_row][col_idx]
-                    if header_row < len(sheet) and col_idx < len(sheet[header_row])
-                    else None
-                )
-
-                quota = None
-                if header_cell:
-                    match = re.search(r'\[(.*?)\]\s*.*?(\d+)', header_cell)
-                    if match:
-                        quota = int(match.group(2))
-                    else:
-                        nums = re.findall(r'\d+', header_cell)
-                        if nums:
-                            quota = int(nums[0])
-
-                slot_cells = [
-                    sheet[r][col_idx] if r < len(sheet) and col_idx < len(sheet[r]) else None
-                    for r in range(start_row, end_row + 1)
-                ]
-
-                if role == "심사위원":
-                    filled = sum(1 for v in slot_cells if v and " " in v.strip())
-                else:
-                    filled = sum(1 for v in slot_cells if v and v.strip())
-
-                available = quota - filled if quota is not None else "N/A"
-
-                results.append({
-                    "date": date,
-                    "role": role,
-                    "language": language,
-                    "quota": quota if quota is not None else "N/A",
-                    "filled": filled if quota is not None else "N/A",
-                    "available": available,
-                })
-    return results
-
-st.markdown("---")
-st.subheader("빈자리 확인")
-
-# Language selection using st.radio (always one line, left-aligned)
-lang_labels = ["영어", "중국어", "일본어"]
-if "selected_language" not in st.session_state:
-    st.session_state.selected_language = lang_labels[0]
-
-selected = st.radio(
-    "언어 선택",
-    lang_labels,
-    index=lang_labels.index(st.session_state.selected_language),
-    horizontal=True,
-    key="selected_language_radio"
-)
-st.session_state.selected_language = selected
-
-language_selected = st.session_state.selected_language
-
-if language_selected:
-    try:
-        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
-        b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
-        b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
-        special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
-        all_dates = [d for d, _ in interpreter_date_range_map]
-        # Main table: exclude special dates
-        table = {}
-        for date in all_dates:
-            if date in special_dates:
-                continue
-            # Default values
-            table[date] = {"A조-심사위원": 0, "A조-참가자": 0, "B조-심사위원": 0, "B조-참가자": 0}
-            # 7/10(목) and 7/14(월) have no 참가자 통역
-            if date in ["7/10(목)", "7/14(월)"]:
-                table[date]["A조-참가자"] = "N/A"
-                table[date]["B조-참가자"] = "N/A"
-            # 7/18~7/22 have no 참가자 일본어 통역
-            if date in ["7/18(금)", "7/19(토)", "7/20(일)", "7/21(월)", "7/22(화)"]:
-                # This only affects the special section for 7/18~20, but for 7/21~22, set B조/A조-참가자 to N/A if language is 일본어
-                if date not in special_dates:
-                    # For main table, set 참가자 일본어 to N/A (if language is 일본어, handled below)
-                    pass  # handled in special section
-        for slot in a_available:
-            date = slot["date"]
-            role = slot["role"]
-            count = slot["available"]
-            if date in special_dates:
-                continue
-            # Only update if not N/A
-            if role == "심사위원":
-                if table[date]["A조-심사위원"] != "N/A" and isinstance(count, int):
-                    table[date]["A조-심사위원"] += count
-                elif count == "N/A":
-                    table[date]["A조-심사위원"] = "N/A"
-            elif role == "참가자":
-                if table[date]["A조-참가자"] != "N/A" and isinstance(count, int):
-                    table[date]["A조-참가자"] += count
-                elif count == "N/A":
-                    table[date]["A조-참가자"] = "N/A"
-        for slot in b_available:
-            date = slot["date"]
-            role = slot["role"]
-            count = slot["available"]
-            if date in special_dates:
-                continue
-            if role == "심사위원":
-                if table[date]["B조-심사위원"] != "N/A" and isinstance(count, int):
-                    table[date]["B조-심사위원"] += count
-                elif count == "N/A":
-                    table[date]["B조-심사위원"] = "N/A"
-            elif role == "참가자":
-                if table[date]["B조-참가자"] != "N/A" and isinstance(count, int):
-                    table[date]["B조-참가자"] += count
-                elif count == "N/A":
-                    table[date]["B조-참가자"] = "N/A"
-        rows = []
-        for date in all_dates:
-            if date in special_dates:
-                continue
-            row = {"날짜": date}
-            row.update(table[date])
-            rows.append(row)
-        # Main table
-        table_html = """
-        <style>
-        .nowrap-table td, .nowrap-table th { white-space:nowrap; font-size:16px; }
-        </style>
-        <table class='nowrap-table' border='1' style='border-collapse:collapse;width:auto;'>
-            <thead>
-                <tr>
-                    <th>날짜</th>
-                    <th>A조-심사위원</th>
-                    <th>A조-참가자</th>
-                    <th>B조-심사위원</th>
-                    <th>B조-참가자</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-        for row in rows:
-            table_html += f"<tr><td>{row['날짜']}</td><td>{row['A조-심사위원']}</td><td>{row['A조-참가자']}</td><td>{row['B조-심사위원']}</td><td>{row['B조-참가자']}</td></tr>"
-        table_html += "</tbody></table>"
-        st.markdown(table_html, unsafe_allow_html=True)
-        # Special section for 7/18~7/20 (A조 only)
-        st.markdown("<br/><b>7/18~7/20 빈자리 (A조만 해당)</b>", unsafe_allow_html=True)
-        # Build a dict for each date: {date: {role: count or 'N/A'}}
-        special_dict = {d: {"심사위원": "N/A", "참가자": "N/A"} for d in ["7/18(금)", "7/19(토)", "7/20(일)"]}
-        for slot in a_available:
-            if slot["date"] in special_dict:
-                role = slot["role"]
-                # Only for the selected language
-                if slot["language"] == language_selected:
-                    special_dict[slot["date"]][role] = slot["available"]
-        # For 참가자-일본어, ensure N/A if language_selected is 일본어
-        if language_selected == "일본어":
-            for d in special_dict:
-                special_dict[d]["참가자"] = "N/A"
-        # Build rows for table
-        special_rows = []
-        for d in ["7/18(금)", "7/19(토)", "7/20(일)"]:
-            special_rows.append({
-                "날짜": d,
-                "심사위원": special_dict[d]["심사위원"],
-                "참가자": special_dict[d]["참가자"]
-            })
-        # Special table
-        special_html = """
-        <style>
-        .nowrap-table2 td, .nowrap-table2 th { white-space:nowrap; font-size:16px; }
-        </style>
-        <table class='nowrap-table2' border='1' style='border-collapse:collapse;width:auto;'>
-            <thead>
-                <tr>
-                    <th>날짜</th>
-                    <th>심사위원</th>
-                    <th>참가자</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-        for row in special_rows:
-            special_html += f"<tr><td>{row['날짜']}</td><td>{row['심사위원']}</td><td>{row['참가자']}</td></tr>"
-        special_html += "</tbody></table>"
-        st.markdown(special_html, unsafe_allow_html=True)
-    except Exception as e:
-        st.error(f"빈자리 확인 중 오류 발생: {e}")
-
-# Remove the debug checkbox and add a new section for slot allocation details
-st.markdown("---")
-st.subheader("슬롯 상세 보기 (선택한 날짜/조)")
-selected_date = st.selectbox("날짜 선택", list(interpreter_date_range_map.keys()))
-tab_choice = st.radio("조 선택", ["A조", "B조"])
-try:
-    ws = get_worksheet(f"본선 기간(통역팀-{tab_choice})")
-    sheet = ws.get_all_values()
-    slot_details = find_available_slots(sheet, interpreter_date_range_map)
-    if slot_details:
-        df = pd.DataFrame(slot_details)
-        st.dataframe(df)
-    else:
-        st.write("No slot sections found for this date/조.")
-except Exception as e:
-    st.error(f"슬롯 상세 보기 오류: {e}")
