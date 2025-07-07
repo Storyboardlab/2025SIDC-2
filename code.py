@@ -100,7 +100,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -447,13 +447,13 @@ if language_selected:
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
 
-def debug_slots_7_13_A조(worksheet):
+def debug_slots_7_13_A조_streamlit(worksheet):
     data = worksheet.get_all_values()
     col_idx = 3  # D column
     start_row = 35  # D36 (0-based)
     end_row = 59   # D60 (0-based)
     row = start_row
-    print('==== Debugging 7/13(일) 본선 기간(통역팀-A조) D36:D60 ====')
+    st.markdown('#### 7/13(일) 본선 기간(통역팀-A조) D36:D60')
     while row <= end_row:
         cell = data[row][col_idx] if row < len(data) and col_idx < len(data[row]) else ""
         header_match = re.match(r"\[(심사위원|참가자)\]\s*(영어|중국어|일본어)\s*(\d+)", cell or "")
@@ -480,7 +480,12 @@ def debug_slots_7_13_A조(worksheet):
                     if m and m.group(1).strip():
                         filled += 1
             available = max(0, quota - filled)
-            print(f"{role} {language}: quota={quota}, filled={filled}, available={available}")
+            st.write(f"{role} {language}: quota={quota}, filled={filled}, available={available}")
             row = r
         else:
             row += 1
+
+# In the Streamlit UI, call this function for 7/13(일) if desired
+if language_selected and st.button('7/13(일) 디버그 보기'):
+    a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
+    debug_slots_7_13_A조_streamlit(a_ws_t)
