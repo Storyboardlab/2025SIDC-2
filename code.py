@@ -146,56 +146,71 @@ else:
 # --- 빈자리 확인 기능 ---
 def find_available_slots(worksheet, date_range_map):
     data = worksheet.get_all_values()
-    available = []
+    # Hardcoded row offsets for each date and role/language
+    offset_map = {
+        # 7/11 and 7/12
+        "7/11(금)": {
+            "심사위원": {"영어": [3], "중국어": [5, 6], "일본어": [8]},
+            "참가자": {"영어": [10, 11], "중국어": [13, 14], "일본어": [16]},
+        },
+        "7/12(토)": {
+            "심사위원": {"영어": [3], "중국어": [5, 6], "일본어": [8]},
+            "참가자": {"영어": [10, 11], "중국어": [13, 14], "일본어": [16]},
+        },
+        # 7/13 to 7/19
+        "7/13(일)": None, "7/14(화)": None, "7/15(화)": None, "7/16(수)": None, "7/17(목)": None, "7/18(금)": None, "7/19(토)": None,
+        # 7/20 to 7/22
+        "7/20(일)": None, "7/21(월)": None, "7/22(화)": None,
+    }
+    # Fill in 7/13~7/19
+    for d in ["7/13(일)", "7/14(화)", "7/15(화)", "7/16(수)", "7/17(목)", "7/18(금)", "7/19(토)"]:
+        offset_map[d] = {
+            "심사위원": {"영어": [3,4,5,6,7], "중국어": [9,10,11,12,13,14], "일본어": [16,17,18]},
+            "참가자": {"영어": [20,21], "중국어": [23,24], "일본어": [26]},
+        }
+    # Fill in 7/20~7/22
+    for d in ["7/20(일)", "7/21(월)", "7/22(화)"]:
+        offset_map[d] = {
+            "심사위원": {"영어": [3,4,5], "중국어": [7], "일본어": [9]},
+            "참가자": {"영어": [11,12], "중국어": [14,15]},
+        }
+    assignments = []
     for date_label, cell_range in date_range_map:
+        if date_label not in offset_map:
+            continue
         match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
         if not match:
             continue
         col_start, row_start, col_end, row_end = match.groups()
-        col_start_idx = ord(col_start) - ord('A')
-        col_end_idx = ord(col_end) - ord('A')
+        col_idx = ord(col_start) - ord('A')  # always single column
         row_start_idx = int(row_start) - 1
-        row_end_idx = int(row_end) - 1
-
-        for col in range(col_start_idx, col_end_idx + 1):
-            row = row_start_idx
-            while row <= row_end_idx:
-                if row < len(data) and col < len(data[row]):
-                    cell = data[row][col]
-                    # Header: [역할] 언어 N
-                    header_match = re.match(r"\[(심사위원|참가자)\]\s*(영어|중국어|일본어)\s*(\d+)", cell or "")
-                    if header_match:
-                        role, language, n_slots = header_match.groups()
-                        n_slots = int(n_slots)
-                        available_count = 0
-                        slot_rows = []
-                        for i in range(1, n_slots+1):
-                            slot_row = row + i
-                            if slot_row > row_end_idx or slot_row >= len(data):
-                                continue
-                            slot_cell = data[slot_row][col] if col < len(data[slot_row]) else ""
-                            if role == "참가자":
-                                # 참가자: blank = available
-                                if not slot_cell.strip():
+        # For each role/language, check the specified offsets
+        for role in offset_map[date_label]:
+            for language in offset_map[date_label][role]:
+                offsets = offset_map[date_label][role][language]
+                available_count = 0
+                for offset in offsets:
+                    row = row_start_idx + offset
+                    if row < len(data) and col_idx < len(data[row]):
+                        cell = data[row][col_idx]
+                        if role == "참가자":
+                            if not cell or cell.strip() == "":
+                                available_count += 1
+                        elif role == "심사위원":
+                            if not cell or cell.strip() == "":
+                                available_count += 1
+                            else:
+                                judge_only = re.match(r"\[[^\]]+\]\s*$", cell)
+                                if judge_only:
                                     available_count += 1
-                            elif role == "심사위원":
-                                # 심사위원: blank or only [이름] = available
-                                if not slot_cell.strip():
-                                    available_count += 1
-                                else:
-                                    judge_only = re.match(r"\[[^\]]+\]\s*$", slot_cell)
-                                    if judge_only:
-                                        available_count += 1
-                        if available_count > 0:
-                            available.append({
-                                "date": date_label,
-                                "language": language,
-                                "role": role,
-                                "available": available_count
-                            })
-                        row += n_slots  # skip slot rows
-                row += 1
-    return available
+                if available_count > 0:
+                    assignments.append({
+                        "date": date_label,
+                        "role": role,
+                        "language": language,
+                        "available": available_count
+                    })
+    return assignments
 
 st.markdown("---")
 st.subheader("빈자리 확인")
