@@ -219,32 +219,28 @@ if language_selected:
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
         a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
         b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
-        # Combine and group by date
-        from collections import defaultdict
-        grouped = defaultdict(lambda: {"A조": {"심사위원": 0, "참가자": 0}, "B조": {"심사위원": 0, "참가자": 0}, "N/A": {"심사위원": 0, "참가자": 0}})
+        # Combine and group by date, 조, 역할
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
+        rows = []
         for slot in a_available:
             date = slot["date"]
             role = slot["role"]
             count = slot["available"]
             group = "N/A" if date in special_dates else "A조"
-            grouped[date][group][role] += count
+            if count > 0:
+                rows.append({"날짜": date, "조": group, "역할": role, "남은 자리": count})
         for slot in b_available:
             date = slot["date"]
             role = slot["role"]
             count = slot["available"]
             group = "N/A" if date in special_dates else "B조"
-            grouped[date][group][role] += count
-        # Display
-        for date in sorted(grouped.keys()):
-            st.markdown(f"### {date}")
-            for group in ["A조", "B조", "N/A"]:
-                if grouped[date][group]["심사위원"] == 0 and grouped[date][group]["참가자"] == 0:
-                    continue
-                st.markdown(f"**{group}**")
-                if grouped[date][group]["심사위원"] > 0:
-                    st.write(f"- 심사위원: {grouped[date][group]['심사위원']} 자리")
-                if grouped[date][group]["참가자"] > 0:
-                    st.write(f"- 참가자: {grouped[date][group]['참가자']} 자리")
+            if count > 0:
+                rows.append({"날짜": date, "조": group, "역할": role, "남은 자리": count})
+        if rows:
+            df = pd.DataFrame(rows)
+            df = df.sort_values(["날짜", "조", "역할"])
+            st.dataframe(df, hide_index=True)
+        else:
+            st.write("해당 언어에 빈자리가 없습니다.")
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
