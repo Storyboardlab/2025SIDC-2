@@ -465,3 +465,42 @@ try:
         st.write("No slot sections found for this date/조.")
 except Exception as e:
     st.error(f"슬롯 상세 보기 오류: {e}")
+
+if st.checkbox("Show 빈자리 디버그 정보 (for dev only)"):
+    try:
+        ws = get_worksheet(f"본선 기간(통역팀-{tab_choice})")
+        data = ws.get_all_values()
+        debug_rows = []
+        for date_label, cell_range in interpreter_date_range_map:
+            if date_label != selected_date:
+                continue
+            if date_label not in allocation_ranges:
+                continue
+            match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
+            if not match:
+                continue
+            col_start, row_start, col_end, row_end = match.groups()
+            col_idx = ord(col_start) - ord('A')
+            for (role, language), (row_start_idx, row_end_idx) in allocation_ranges[date_label].items():
+                header_row = row_start_idx - 1
+                header_cell = data[header_row][col_idx] if header_row < len(data) and col_idx < len(data[header_row]) else ""
+                quota = None
+                if header_cell and header_cell.strip():
+                    m = re.search(r"\d+", header_cell)
+                    if m:
+                        quota = int(m.group())
+                debug_rows.append({
+                    "date": date_label,
+                    "role": role,
+                    "language": language,
+                    "col_idx": col_idx,
+                    "header_row": header_row,
+                    "header_cell": header_cell,
+                    "quota": quota,
+                    "range": f"{row_start_idx}-{row_end_idx}"
+                })
+        import pandas as pd
+        st.write("디버그 정보 (header, quota, col, row):")
+        st.table(pd.DataFrame(debug_rows))
+    except Exception as e:
+        st.error(f"디버그 중 오류 발생: {e}")
