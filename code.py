@@ -99,7 +99,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -275,10 +275,15 @@ def get_empty_count(ws, col, header_row, alloc_rows, role, language):
                 filled += 1
     return quota - filled
 
-if language:
-    # Prepare worksheet
+@st.cache_resource(ttl=60)
+def get_interpreter_worksheets():
     a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
     b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
+    return a_ws_t, b_ws_t
+
+if language:
+    # Prepare worksheet
+    a_ws_t, b_ws_t = get_interpreter_worksheets()
     normal_dates = ["7/10(목)", "7/11(금)", "7/12(토)", "7/13(일)", "7/14(화)", "7/15(화)", "7/16(수)", "7/17(목)", "7/21(월)", "7/22(화)"]
     special_dates = ["7/18(금)", "7/19(토)", "7/20(일)"]
 
