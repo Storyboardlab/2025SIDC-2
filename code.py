@@ -100,7 +100,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울국제 무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -243,46 +243,40 @@ if language_selected:
         b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
         all_dates = [d for d, _ in interpreter_date_range_map]
+        # Main table: exclude special dates
         table = {}
         for date in all_dates:
             if date in special_dates:
-                table[date] = {"A조-심사위원": "N/A", "A조-참가자": "N/A", "B조-심사위원": "N/A", "B조-참가자": "N/A"}
-            else:
-                table[date] = {"A조-심사위원": 0, "A조-참가자": 0, "B조-심사위원": 0, "B조-참가자": 0}
+                continue
+            table[date] = {"A조-심사위원": 0, "A조-참가자": 0, "B조-심사위원": 0, "B조-참가자": 0}
         for slot in a_available:
             date = slot["date"]
             role = slot["role"]
             count = slot["available"]
             if date in special_dates:
-                if role == "심사위원":
-                    table[date]["A조-심사위원"] = count
-                elif role == "참가자":
-                    table[date]["A조-참가자"] = count
-            else:
-                if role == "심사위원":
-                    table[date]["A조-심사위원"] += count
-                elif role == "참가자":
-                    table[date]["A조-참가자"] += count
+                continue
+            if role == "심사위원":
+                table[date]["A조-심사위원"] += count
+            elif role == "참가자":
+                table[date]["A조-참가자"] += count
         for slot in b_available:
             date = slot["date"]
             role = slot["role"]
             count = slot["available"]
             if date in special_dates:
-                if role == "심사위원":
-                    table[date]["B조-심사위원"] = count
-                elif role == "참가자":
-                    table[date]["B조-참가자"] = count
-            else:
-                if role == "심사위원":
-                    table[date]["B조-심사위원"] += count
-                elif role == "참가자":
-                    table[date]["B조-참가자"] += count
+                continue
+            if role == "심사위원":
+                table[date]["B조-심사위원"] += count
+            elif role == "참가자":
+                table[date]["B조-참가자"] += count
         rows = []
         for date in all_dates:
+            if date in special_dates:
+                continue
             row = {"날짜": date}
             row.update(table[date])
             rows.append(row)
-        # Custom HTML table with nowrap style
+        # Main table
         table_html = """
         <style>
         .nowrap-table td, .nowrap-table th { white-space:nowrap; font-size:16px; }
@@ -303,5 +297,38 @@ if language_selected:
             table_html += f"<tr><td>{row['날짜']}</td><td>{row['A조-심사위원']}</td><td>{row['A조-참가자']}</td><td>{row['B조-심사위원']}</td><td>{row['B조-참가자']}</td></tr>"
         table_html += "</tbody></table>"
         st.markdown(table_html, unsafe_allow_html=True)
+        # Special section for 7/18~7/20 (A조 only)
+        st.markdown("<br/><b>7/18~7/20 빈자리 (A조만 해당)</b>", unsafe_allow_html=True)
+        special_rows = []
+        for slot in a_available:
+            if slot["date"] in special_dates:
+                special_rows.append({
+                    "날짜": slot["date"],
+                    "역할": slot["role"],
+                    "언어": slot["language"],
+                    "남은 자리": slot["available"]
+                })
+        # Sort by date, role, language
+        special_rows = sorted(special_rows, key=lambda x: (x["날짜"], x["역할"], x["언어"]))
+        # Special table
+        special_html = """
+        <style>
+        .nowrap-table2 td, .nowrap-table2 th { white-space:nowrap; font-size:16px; }
+        </style>
+        <table class='nowrap-table2' border='1' style='border-collapse:collapse;width:auto;'>
+            <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>역할</th>
+                    <th>언어</th>
+                    <th>남은 자리</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        for row in special_rows:
+            special_html += f"<tr><td>{row['날짜']}</td><td>{row['역할']}</td><td>{row['언어']}</td><td>{row['남은 자리']}</td></tr>"
+        special_html += "</tbody></table>"
+        st.markdown(special_html, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
