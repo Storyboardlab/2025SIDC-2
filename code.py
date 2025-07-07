@@ -146,86 +146,149 @@ else:
 # --- 빈자리 확인 기능 ---
 def find_available_slots(worksheet, date_range_map):
     data = worksheet.get_all_values()
-    # Map each date to its week block and column index (0-based)
-    week_blocks = [
-        # (start_row, [date, col_idx])
-        (6, [  # 7/10~7/12 block starts at row 6 (0-based)
-            ("7/10(목)", 4),
-            ("7/11(금)", 5),
-            ("7/12(토)", 6),
-        ]),
-        (32, [  # 7/13~7/19 block starts at row 32
-            ("7/13(일)", 1),
-            ("7/14(화)", 2),
-            ("7/15(화)", 3),
-            ("7/16(수)", 4),
-            ("7/17(목)", 5),
-            ("7/18(금)", 6),
-            ("7/19(토)", 7),
-        ]),
-        (68, [  # 7/20~7/22 block starts at row 68
-            ("7/20(일)", 2),
-            ("7/21(월)", 3),
-            ("7/22(화)", 4),
-        ]),
-    ]
-    # For each week block, define the row offsets for each role/language
-    offsets_map = {
-        # 7/10~7/12 (block starts at row 6)
-        6: {
-            # Confirmed from reference: adjust as needed
-            "심사위원": {"영어": [10], "중국어": [12, 13], "일본어": [15]},
-            "참가자": {"영어": [17, 18], "중국어": [20, 21], "일본어": [23]},
+    # Hardcoded slot row ranges for each date/role/language
+    allocation_ranges = {
+        # 7/10~7/12
+        "7/10(목)": {
+            ("심사위원", "영어"): [13, 13],
+            ("심사위원", "중국어"): [15, 16],
+            ("심사위원", "일본어"): [18, 18],
+            ("참가자", "영어"): [20, 21],
+            ("참가자", "중국어"): [23, 24],
+            ("참가자", "일본어"): [26, 26],
         },
-        # 7/13~7/19 (block starts at row 32)
-        32: {
-            # 심사위원 영어: [5,6,7,8,9] (rows 37-41, as confirmed for 7/19(토))
-            # Adjust others as needed based on your reference
-            "심사위원": {
-                "영어": [5,6,7,8,9],
-                "중국어": [16,17,18,19,20,21],
-                "일본어": [23,24,25]
-            },
-            "참가자": {
-                "영어": [27,28],
-                "중국어": [30,31],
-                "일본어": [33]
-            },
+        "7/11(금)": {
+            ("심사위원", "영어"): [13, 13],
+            ("심사위원", "중국어"): [15, 16],
+            ("심사위원", "일본어"): [18, 18],
+            ("참가자", "영어"): [20, 21],
+            ("참가자", "중국어"): [23, 24],
+            ("참가자", "일본어"): [26, 26],
         },
-        # 7/20~7/22 (block starts at row 68)
-        68: {
-            # Adjust as needed based on your reference
-            "심사위원": {"영어": [8,9,10], "중국어": [12], "일본어": [14]},
-            "참가자": {"영어": [16,17], "중국어": [19,20]},
+        "7/12(토)": {
+            ("심사위원", "영어"): [13, 13],
+            ("심사위원", "중국어"): [15, 16],
+            ("심사위원", "일본어"): [18, 18],
+            ("참가자", "영어"): [20, 21],
+            ("참가자", "중국어"): [23, 24],
+            ("참가자", "일본어"): [26, 26],
+        },
+        # 7/13~7/19
+        "7/13(일)": {
+            ("심사위원", "영어"): [37, 41],
+            ("심사위원", "중국어"): [43, 48],
+            ("심사위원", "일본어"): [50, 52],
+            ("참가자", "영어"): [54, 55],
+            ("참가자", "중국어"): [57, 58],
+            ("참가자", "일본어"): [60, 60],
+        },
+        "7/14(화)": {
+            ("심사위원", "영어"): [37, 41],
+            ("심사위원", "중국어"): [43, 48],
+            ("심사위원", "일본어"): [50, 52],
+            ("참가자", "영어"): [54, 55],
+            ("참가자", "중국어"): [57, 58],
+            ("참가자", "일본어"): [60, 60],
+        },
+        "7/15(화)": {
+            ("심사위원", "영어"): [37, 41],
+            ("심사위원", "중국어"): [43, 48],
+            ("심사위원", "일본어"): [50, 52],
+            ("참가자", "영어"): [54, 55],
+            ("참가자", "중국어"): [57, 58],
+            ("참가자", "일본어"): [60, 60],
+        },
+        "7/16(수)": {
+            ("심사위원", "영어"): [37, 41],
+            ("심사위원", "중국어"): [43, 48],
+            ("심사위원", "일본어"): [50, 52],
+            ("참가자", "영어"): [54, 55],
+            ("참가자", "중국어"): [57, 58],
+            ("참가자", "일본어"): [60, 60],
+        },
+        "7/17(목)": {
+            ("심사위원", "영어"): [37, 41],
+            ("심사위원", "중국어"): [43, 48],
+            ("심사위원", "일본어"): [50, 52],
+            ("참가자", "영어"): [54, 55],
+            ("참가자", "중국어"): [57, 58],
+            ("참가자", "일본어"): [60, 60],
+        },
+        "7/18(금)": {
+            ("심사위원", "영어"): [37, 41],
+            ("심사위원", "중국어"): [43, 48],
+            ("심사위원", "일본어"): [50, 52],
+            ("참가자", "영어"): [54, 55],
+            ("참가자", "중국어"): [57, 58],
+            ("참가자", "일본어"): [60, 60],
+        },
+        "7/19(토)": {
+            ("심사위원", "영어"): [37, 41],
+            ("심사위원", "중국어"): [43, 48],
+            ("심사위원", "일본어"): [50, 52],
+            ("참가자", "영어"): [54, 55],
+            ("참가자", "중국어"): [57, 58],
+            ("참가자", "일본어"): [60, 60],
+        },
+        # 7/20~7/22
+        "7/20(일)": {
+            ("심사위원", "영어"): [71, 73],
+            ("심사위원", "중국어"): [75, 75],
+            ("심사위원", "일본어"): [77, 77],
+            ("참가자", "영어"): [79, 80],
+            ("참가자", "중국어"): [82, 83],
+        },
+        "7/21(월)": {
+            ("심사위원", "영어"): [71, 73],
+            ("심사위원", "중국어"): [75, 75],
+            ("심사위원", "일본어"): [77, 77],
+            ("참가자", "영어"): [79, 80],
+            ("참가자", "중국어"): [82, 83],
+        },
+        "7/22(화)": {
+            ("심사위원", "영어"): [71, 73],
+            ("심사위원", "중국어"): [75, 75],
+            ("심사위원", "일본어"): [77, 77],
+            ("참가자", "영어"): [79, 80],
+            ("참가자", "중국어"): [82, 83],
         },
     }
     assignments = []
-    for block_start, date_cols in week_blocks:
-        for date_label, col_idx in date_cols:
-            offsets = offsets_map[block_start]
-            for role in offsets:
-                for language in offsets[role]:
-                    available_count = 0
-                    for row_offset in offsets[role][language]:
-                        row = block_start + row_offset
-                        if row < len(data) and col_idx < len(data[row]):
-                            cell = data[row][col_idx]
-                            if role == "참가자":
-                                if not cell or cell.strip() == "":
+    for date_label, cell_range in date_range_map:
+        if date_label not in allocation_ranges:
+            continue
+        match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
+        if not match:
+            continue
+        col_start, row_start, col_end, row_end = match.groups()
+        col_idx = ord(col_start) - ord('A')
+        for (role, language), (row_start_idx, row_end_idx) in allocation_ranges[date_label].items():
+            # Header is one row above the start
+            header_row = row_start_idx - 1
+            header_cell = data[header_row][col_idx] if header_row < len(data) and col_idx < len(data[header_row]) else ""
+            if not header_cell or header_cell.strip() == "":
+                available_count = "N/A"
+            else:
+                available_count = 0
+                for row in range(row_start_idx, row_end_idx + 1):
+                    if row < len(data) and col_idx < len(data[row]):
+                        cell = data[row][col_idx]
+                        if role == "참가자":
+                            if not cell or cell.strip() == "":
+                                available_count += 1
+                        elif role == "심사위원":
+                            if not cell or cell.strip() == "":
+                                available_count += 1
+                            else:
+                                judge_only = re.match(r"\[[^\]]+\]\s*$", cell)
+                                if judge_only:
                                     available_count += 1
-                            elif role == "심사위원":
-                                if not cell or cell.strip() == "":
-                                    available_count += 1
-                                else:
-                                    judge_only = re.match(r"\[[^\]]+\]\s*$", cell)
-                                    if judge_only:
-                                        available_count += 1
-                    assignments.append({
-                        "date": date_label,
-                        "role": role,
-                        "language": language,
-                        "available": available_count
-                    })
+            assignments.append({
+                "date": date_label,
+                "role": role,
+                "language": language,
+                "available": available_count
+            })
     return assignments
 
 st.markdown("---")
