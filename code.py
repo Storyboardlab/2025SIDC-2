@@ -100,7 +100,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -343,9 +343,15 @@ if language_selected:
                 continue
             # Only update if not N/A
             if role == "심사위원":
-                table[date]["A조-심사위원"] += count
-            elif role == "참가자" and table[date]["A조-참가자"] != "N/A":
-                table[date]["A조-참가자"] += count
+                if table[date]["A조-심사위원"] != "N/A" and isinstance(count, int):
+                    table[date]["A조-심사위원"] += count
+                elif count == "N/A":
+                    table[date]["A조-심사위원"] = "N/A"
+            elif role == "참가자":
+                if table[date]["A조-참가자"] != "N/A" and isinstance(count, int):
+                    table[date]["A조-참가자"] += count
+                elif count == "N/A":
+                    table[date]["A조-참가자"] = "N/A"
         for slot in b_available:
             date = slot["date"]
             role = slot["role"]
@@ -353,9 +359,15 @@ if language_selected:
             if date in special_dates:
                 continue
             if role == "심사위원":
-                table[date]["B조-심사위원"] += count
-            elif role == "참가자" and table[date]["B조-참가자"] != "N/A":
-                table[date]["B조-참가자"] += count
+                if table[date]["B조-심사위원"] != "N/A" and isinstance(count, int):
+                    table[date]["B조-심사위원"] += count
+                elif count == "N/A":
+                    table[date]["B조-심사위원"] = "N/A"
+            elif role == "참가자":
+                if table[date]["B조-참가자"] != "N/A" and isinstance(count, int):
+                    table[date]["B조-참가자"] += count
+                elif count == "N/A":
+                    table[date]["B조-참가자"] = "N/A"
         rows = []
         for date in all_dates:
             if date in special_dates:
