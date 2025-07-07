@@ -208,7 +208,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울국제무용콩쿠르 서포터즈")
+st.title("2025 서울 국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -466,41 +466,60 @@ try:
 except Exception as e:
     st.error(f"슬롯 상세 보기 오류: {e}")
 
-if st.checkbox("Show 빈자리 디버그 정보 (for dev only)"):
-    try:
-        ws = get_worksheet(f"본선 기간(통역팀-{tab_choice})")
-        data = ws.get_all_values()
-        debug_rows = []
-        for date_label, cell_range in interpreter_date_range_map:
-            if date_label != selected_date:
-                continue
-            if date_label not in allocation_ranges:
-                continue
-            match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
-            if not match:
-                continue
-            col_start, row_start, col_end, row_end = match.groups()
-            col_idx = ord(col_start) - ord('A')
-            for (role, language), (row_start_idx, row_end_idx) in allocation_ranges[date_label].items():
-                header_row = row_start_idx - 1
-                header_cell = data[header_row][col_idx] if header_row < len(data) and col_idx < len(data[header_row]) else ""
-                quota = None
-                if header_cell and header_cell.strip():
-                    m = re.search(r"\d+", header_cell)
-                    if m:
-                        quota = int(m.group())
-                debug_rows.append({
-                    "date": date_label,
-                    "role": role,
-                    "language": language,
-                    "col_idx": col_idx,
-                    "header_row": header_row,
-                    "header_cell": header_cell,
-                    "quota": quota,
-                    "range": f"{row_start_idx}-{row_end_idx}"
-                })
-        import pandas as pd
-        st.write("디버그 정보 (header, quota, col, row):")
-        st.table(pd.DataFrame(debug_rows))
-    except Exception as e:
-        st.error(f"디버그 중 오류 발생: {e}")
+def col_letter_to_index(col_letter):
+    # Converts Excel/Sheets column letter (A, B, C, ...) to 0-based index
+    col_letter = col_letter.upper()
+    index = 0
+    for char in col_letter:
+        index = index * 26 + (ord(char) - ord('A') + 1)
+    return index - 1
+
+def debug_slot_section(sheet, date, role, language, section_info):
+    col_letter = section_info['col']
+    col_idx = col_letter_to_index(col_letter)
+    header_row = section_info['header_row']
+    start_row = section_info['start_row']
+    end_row = section_info['end_row']
+
+    # Get header cell value
+    header_cell = sheet[header_row][col_idx] if header_row < len(sheet) and col_idx < len(sheet[header_row]) else None
+
+    # Parse quota from header
+    quota = None
+    if header_cell:
+        match = re.search(r'\[(.*?)\]\s*.*?(\d+)', header_cell)
+        if match:
+            quota = int(match.group(2))
+        else:
+            # fallback: just find the first number
+            nums = re.findall(r'\d+', header_cell)
+            if nums:
+                quota = int(nums[0])
+
+    # Get slot cell values
+    slot_cells = []
+    for r in range(start_row, end_row + 1):
+        if r < len(sheet) and col_idx < len(sheet[r]):
+            slot_cells.append((r, sheet[r][col_idx]))
+        else:
+            slot_cells.append((r, None))
+
+    # Count filled slots
+    if role == "심사위원":
+        filled = sum(1 for _, v in slot_cells if v and " " in v.strip())
+    else:  # 참가자
+        filled = sum(1 for _, v in slot_cells if v and v.strip())
+
+    available = quota - filled if quota is not None else "N/A"
+
+    # Print debug info
+    print(f"--- {date} / {role} / {language} ---")
+    print(f"Column: {col_letter} (index {col_idx})")
+    print(f"Header cell [row {header_row+1}, col {col_letter}]: {repr(header_cell)}")
+    print(f"Quota parsed: {quota}")
+    print("Slot cells:")
+    for r, v in slot_cells:
+        print(f"  [row {r+1}, col {col_letter}] = {repr(v)}")
+    print(f"Filled slots: {filled}")
+    print(f"Available slots: {available}")
+    print("")
