@@ -248,16 +248,28 @@ if language_selected:
         for date in all_dates:
             if date in special_dates:
                 continue
+            # Default values
             table[date] = {"A조-심사위원": 0, "A조-참가자": 0, "B조-심사위원": 0, "B조-참가자": 0}
+            # 7/10(목) and 7/14(월) have no 참가자 통역
+            if date in ["7/10(목)", "7/14(월)"]:
+                table[date]["A조-참가자"] = "N/A"
+                table[date]["B조-참가자"] = "N/A"
+            # 7/18~7/22 have no 참가자 일본어 통역
+            if date in ["7/18(금)", "7/19(토)", "7/20(일)", "7/21(월)", "7/22(화)"]:
+                # This only affects the special section for 7/18~20, but for 7/21~22, set B조/A조-참가자 to N/A if language is 일본어
+                if date not in special_dates:
+                    # For main table, set 참가자 일본어 to N/A (if language is 일본어, handled below)
+                    pass  # handled in special section
         for slot in a_available:
             date = slot["date"]
             role = slot["role"]
             count = slot["available"]
             if date in special_dates:
                 continue
+            # Only update if not N/A
             if role == "심사위원":
                 table[date]["A조-심사위원"] += count
-            elif role == "참가자":
+            elif role == "참가자" and table[date]["A조-참가자"] != "N/A":
                 table[date]["A조-참가자"] += count
         for slot in b_available:
             date = slot["date"]
@@ -267,7 +279,7 @@ if language_selected:
                 continue
             if role == "심사위원":
                 table[date]["B조-심사위원"] += count
-            elif role == "참가자":
+            elif role == "참가자" and table[date]["B조-참가자"] != "N/A":
                 table[date]["B조-참가자"] += count
         rows = []
         for date in all_dates:
@@ -302,11 +314,29 @@ if language_selected:
         special_rows = []
         for slot in a_available:
             if slot["date"] in special_dates:
+                # 참가자 일본어는 N/A
+                if slot["role"] == "참가자" and slot["language"] == "일본어":
+                    special_rows.append({
+                        "날짜": slot["date"],
+                        "역할": slot["role"],
+                        "언어": slot["language"],
+                        "남은 자리": "N/A"
+                    })
+                else:
+                    special_rows.append({
+                        "날짜": slot["date"],
+                        "역할": slot["role"],
+                        "언어": slot["language"],
+                        "남은 자리": slot["available"]
+                    })
+        # Also add N/A rows for 참가자-일본어 if not present
+        for d in ["7/18(금)", "7/19(토)", "7/20(일)"]:
+            if not any(r["날짜"] == d and r["역할"] == "참가자" and r["언어"] == "일본어" for r in special_rows):
                 special_rows.append({
-                    "날짜": slot["date"],
-                    "역할": slot["role"],
-                    "언어": slot["language"],
-                    "남은 자리": slot["available"]
+                    "날짜": d,
+                    "역할": "참가자",
+                    "언어": "일본어",
+                    "남은 자리": "N/A"
                 })
         # Sort by date, role, language
         special_rows = sorted(special_rows, key=lambda x: (x["날짜"], x["역할"], x["언어"]))
