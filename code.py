@@ -179,7 +179,6 @@ allocation_config = [
     for section in ("A", "B")
 ]
 
-@st.cache_resource(ttl=60)
 def extract_slot_counts(worksheet, language):
     data = worksheet.get_all_values()
     results = {}
