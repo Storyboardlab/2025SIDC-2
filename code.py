@@ -266,23 +266,28 @@ def find_available_slots(worksheet, date_range_map):
             # Header is one row above the start
             header_row = row_start_idx - 1
             header_cell = data[header_row][col_idx] if header_row < len(data) and col_idx < len(data[header_row]) else ""
-            if not header_cell or header_cell.strip() == "":
+            # Parse N from header
+            quota = None
+            if header_cell and header_cell.strip():
+                m = re.search(r"\d+", header_cell)
+                if m:
+                    quota = int(m.group())
+            if not header_cell or header_cell.strip() == "" or quota is None:
                 available_count = "N/A"
             else:
-                available_count = 0
+                filled = 0
                 for row in range(row_start_idx, row_end_idx + 1):
                     if row < len(data) and col_idx < len(data[row]):
                         cell = data[row][col_idx]
                         if role == "참가자":
-                            if not cell or cell.strip() == "":
-                                available_count += 1
+                            if cell and cell.strip() != "":
+                                filled += 1
                         elif role == "심사위원":
-                            if not cell or cell.strip() == "":
-                                available_count += 1
-                            else:
-                                judge_only = re.match(r"\[[^\]]+\]\s*$", cell)
-                                if judge_only:
-                                    available_count += 1
+                            # Filled if judge + interpreter name
+                            m = re.match(r"\[[^\]]+\]\s*(.+)", cell or "")
+                            if m and m.group(1).strip():
+                                filled += 1
+                available_count = max(0, quota - filled)
             assignments.append({
                 "date": date_label,
                 "role": role,
