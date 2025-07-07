@@ -146,110 +146,173 @@ else:
 st.subheader("빈자리 확인")
 language = st.radio("언어를 선택하세요:", ["영어", "중국어", "일본어"], horizontal=True)
 
-# Row mappings for each date range and category
-row_mappings = {
+# Allocation mapping: date -> team -> role -> (col, header_row, alloc_rows)
+allocation_map = {
     # 7/10–7/12
     "7/10(목)": {
         "A조": {
-            "심사위원": {"영어": 13, "중국어": [15, 16], "일본어": 18},
-            "참가자": {"영어": [20, 21], "중국어": [23, 24], "일본어": 26},
+            "심사위원": {"영어": ("F", 12, [13]), "중국어": ("F", 14, [15,16]), "일본어": ("F", 17, [18])},
+            "참가자": {"영어": ("F", 19, [20,21]), "중국어": ("F", 22, [23,24]), "일본어": ("F", 25, [26])},
         },
-        "B조": None  # Add if needed
+        "B조": None,
     },
     "7/11(금)": {
         "A조": {
-            "심사위원": {"영어": 13, "중국어": [15, 16], "일본어": 18},
-            "참가자": {"영어": [20, 21], "중국어": [23, 24], "일본어": 26},
+            "심사위원": {"영어": ("G", 12, [13]), "중국어": ("G", 14, [15,16]), "일본어": ("G", 17, [18])},
+            "참가자": {"영어": ("G", 19, [20,21]), "중국어": ("G", 22, [23,24]), "일본어": ("G", 25, [26])},
         },
-        "B조": None
+        "B조": None,
     },
     "7/12(토)": {
         "A조": {
-            "심사위원": {"영어": 13, "중국어": [15, 16], "일본어": 18},
-            "참가자": {"영어": [20, 21], "중국어": [23, 24], "일본어": 26},
+            "심사위원": {"영어": ("H", 12, [13]), "중국어": ("H", 14, [15,16]), "일본어": ("H", 17, [18])},
+            "참가자": {"영어": ("H", 19, [20,21]), "중국어": ("H", 22, [23,24]), "일본어": ("H", 25, [26])},
         },
-        "B조": None
+        "B조": None,
     },
     # 7/13–7/19
     "7/13(일)": {
         "A조": {
-            "심사위원": {"영어": [37, 41], "중국어": [43, 48], "일본어": [50, 52]},
-            "참가자": {"영어": [54, 55], "중국어": [57, 58], "일본어": 60},
+            "심사위원": {"영어": ("B", 36, list(range(37,42))), "중국어": ("B", 42, list(range(43,49))), "일본어": ("B", 49, list(range(50,53)))},
+            "참가자": {"영어": ("B", 53, [54,55]), "중국어": ("B", 56, [57,58]), "일본어": ("B", 59, [60])},
         },
-        "B조": None
+        "B조": None,
     },
-    # ... (repeat for other dates)
+    "7/14(화)": {
+        "A조": {
+            "심사위원": {"영어": ("C", 36, list(range(37,42))), "중국어": ("C", 42, list(range(43,49))), "일본어": ("C", 49, list(range(50,53)))},
+            "참가자": {"영어": ("C", 53, [54,55]), "중국어": ("C", 56, [57,58]), "일본어": ("C", 59, [60])},
+        },
+        "B조": None,
+    },
+    "7/15(화)": {
+        "A조": {
+            "심사위원": {"영어": ("D", 36, list(range(37,42))), "중국어": ("D", 42, list(range(43,49))), "일본어": ("D", 49, list(range(50,53)))},
+            "참가자": {"영어": ("D", 53, [54,55]), "중국어": ("D", 56, [57,58]), "일본어": ("D", 59, [60])},
+        },
+        "B조": None,
+    },
+    "7/16(수)": {
+        "A조": {
+            "심사위원": {"영어": ("E", 36, list(range(37,42))), "중국어": ("E", 42, list(range(43,49))), "일본어": ("E", 49, list(range(50,53)))},
+            "참가자": {"영어": ("E", 53, [54,55]), "중국어": ("E", 56, [57,58]), "일본어": ("E", 59, [60])},
+        },
+        "B조": None,
+    },
+    "7/17(목)": {
+        "A조": {
+            "심사위원": {"영어": ("F", 36, list(range(37,42))), "중국어": ("F", 42, list(range(43,49))), "일본어": ("F", 49, list(range(50,53)))},
+            "참가자": {"영어": ("F", 53, [54,55]), "중국어": ("F", 56, [57,58]), "일본어": ("F", 59, [60])},
+        },
+        "B조": None,
+    },
+    # 7/18–7/20 (special)
+    "7/18(금)": {
+        "A조": {
+            "심사위원": {"영어": ("G", 70, [71,72,73]), "중국어": ("G", 74, [75]), "일본어": ("G", 76, [77])},
+            "참가자": {"영어": ("G", 78, [79,80]), "중국어": ("G", 81, [82,83])},
+        },
+        "B조": None,
+    },
+    "7/19(토)": {
+        "A조": {
+            "심사위원": {"영어": ("H", 70, [71,72,73]), "중국어": ("H", 74, [75]), "일본어": ("H", 76, [77])},
+            "참가자": {"영어": ("H", 78, [79,80]), "중국어": ("H", 81, [82,83])},
+        },
+        "B조": None,
+    },
+    "7/20(일)": {
+        "A조": {
+            "심사위원": {"영어": ("B", 70, [71,72,73]), "중국어": ("B", 74, [75]), "일본어": ("B", 76, [77])},
+            "참가자": {"영어": ("B", 78, [79,80]), "중국어": ("B", 81, [82,83])},
+        },
+        "B조": None,
+    },
+    # 7/21–7/22
+    "7/21(월)": {
+        "A조": {
+            "심사위원": {"영어": ("C", 70, [71,72,73]), "중국어": ("C", 74, [75]), "일본어": ("C", 76, [77])},
+            "참가자": {"영어": ("C", 78, [79,80]), "중국어": ("C", 81, [82,83])},
+        },
+        "B조": None,
+    },
+    "7/22(화)": {
+        "A조": {
+            "심사위원": {"영어": ("D", 70, [71,72,73]), "중국어": ("D", 74, [75]), "일본어": ("D", 76, [77])},
+            "참가자": {"영어": ("D", 78, [79,80]), "중국어": ("D", 81, [82,83])},
+        },
+        "B조": None,
+    },
 }
 
-# Helper to get worksheet data
-@st.cache_data(ttl=60)
-def get_sheet_data(tab_name):
-    ws = get_worksheet(tab_name)
-    return ws.get_all_values()
-
-def get_slot_status(data, col, rows, header_row, role, lang):
-    # rows: int or [start, end]
-    if isinstance(rows, int):
-        slot_rows = [rows-1]  # 0-based
-    else:
-        slot_rows = list(range(rows[0]-1, rows[-1]))
-    # Header cell is row above first slot
-    header = data[header_row-1][col] if header_row-1 < len(data) and col < len(data[0]) else ""
-    if not header or not re.search(rf"\[{role}\]\s*{lang}", header):
+def get_empty_count(ws, col, header_row, alloc_rows, role, language):
+    # Convert col letter to index
+    col_idx = ord(col) - ord('A')
+    data = ws.get_all_values()
+    # Header cell
+    if header_row >= len(data):
         return "N/A"
-    m = re.search(r"(\d+)$", header)
-    total = int(m.group(1)) if m else len(slot_rows)
+    header = data[header_row][col_idx] if col_idx < len(data[header_row]) else ""
+    # Extract quota
+    m = re.match(r"\[(심사위원|참가자)\]\s*" + language + r"\s*(\d+)", header)
+    if not m:
+        return "N/A"
+    quota = int(m.group(2))
     filled = 0
-    for r in slot_rows:
-        if r < len(data) and col < len(data[r]):
-            cell = data[r][col]
-            if role == "심사위원":
-                if cell and not ("(no interpreter)" in cell or cell.strip() == ""):
-                    filled += 1
-            else:  # 참가자
-                if cell and cell.strip():
-                    filled += 1
-    return f"{filled}/{total}"
+    for r in alloc_rows:
+        if r >= len(data):
+            continue
+        cell = data[r][col_idx] if col_idx < len(data[r]) else ""
+        if role == "심사위원":
+            # [심사위원이름] 통역사이름 → filled, [심사위원이름] → empty, blank → ignore
+            if cell.strip() == "":
+                continue
+            if re.match(r"\[[^\]]+\]\s*.+", cell):
+                filled += 1
+        else:
+            # 참가자: any non-empty cell = filled
+            if cell.strip() != "":
+                filled += 1
+    return quota - filled
 
 if language:
-    # Dates for each table type
+    # Prepare worksheet
+    a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
+    b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
     normal_dates = ["7/10(목)", "7/11(금)", "7/12(토)", "7/13(일)", "7/14(화)", "7/15(화)", "7/16(수)", "7/17(목)", "7/21(월)", "7/22(화)"]
     special_dates = ["7/18(금)", "7/19(토)", "7/20(일)"]
 
-    # Get data for A조 and B조
-    try:
-        a_data = get_sheet_data("본선 기간(통역팀-A조)")
-        b_data = get_sheet_data("본선 기간(통역팀-B조)")
-    except Exception as e:
-        st.error(f"스프레드시트 접근 중 오류 발생: {e}")
-        a_data, b_data = [], []
-
     # Table for normal dates (7/10–7/17, 7/21–7/22)
+    table_normal = {"날짜": [], "A조 - 심사위원": [], "A조 - 참가자": [], "B조 - 심사위원": [], "B조 - 참가자": []}
+    for d in normal_dates:
+        table_normal["날짜"].append(d)
+        for team, ws, col1, col2 in [("A조", a_ws_t, "A조 - 심사위원", "A조 - 참가자"), ("B조", b_ws_t, "B조 - 심사위원", "B조 - 참가자")]:
+            v1 = v2 = "N/A"
+            if allocation_map.get(d, {}).get(team):
+                if allocation_map[d][team]["심사위원"].get(language):
+                    col, header_row, alloc_rows = allocation_map[d][team]["심사위원"][language]
+                    v1 = get_empty_count(ws, col, header_row, alloc_rows, "심사위원", language)
+                if allocation_map[d][team]["참가자"].get(language):
+                    col, header_row, alloc_rows = allocation_map[d][team]["참가자"][language]
+                    v2 = get_empty_count(ws, col, header_row, alloc_rows, "참가자", language)
+            table_normal[col1].append(v1)
+            table_normal[col2].append(v2)
     st.markdown("#### 7/10–7/17, 7/21–7/22")
-    table = {"날짜": [], "A조 - 심사위원": [], "A조 - 참가자": [], "B조 - 심사위원": [], "B조 - 참가자": []}
-    for date in normal_dates:
-        table["날짜"].append(date)
-        # Example: only A조 for now, col=5 (F)
-        # TODO: Map col and rows for each date/category
-        if date in row_mappings:
-            a_map = row_mappings[date]["A조"]
-            # 심사위원
-            table["A조 - 심사위원"].append(get_slot_status(a_data, 5, a_map["심사위원"][language], 12, "심사위원", language))
-            # 참가자
-            table["A조 - 참가자"].append(get_slot_status(a_data, 5, a_map["참가자"][language], 19, "참가자", language))
-        else:
-            table["A조 - 심사위원"].append("")
-            table["A조 - 참가자"].append("")
-        # B조: implement similarly if needed
-        table["B조 - 심사위원"].append("")
-        table["B조 - 참가자"].append("")
-    st.table(table)
+    st.table(table_normal)
 
     # Table for special dates (7/18–7/20)
+    table_special = {"날짜": [], "심사위원": [], "참가자": []}
+    for d in special_dates:
+        table_special["날짜"].append(d)
+        v1 = v2 = "N/A"
+        if allocation_map.get(d, {}).get("A조"):
+            if allocation_map[d]["A조"]["심사위원"].get(language):
+                col, header_row, alloc_rows = allocation_map[d]["A조"]["심사위원"][language]
+                v1 = get_empty_count(a_ws_t, col, header_row, alloc_rows, "심사위원", language)
+            if allocation_map[d]["A조"]["참가자"].get(language):
+                col, header_row, alloc_rows = allocation_map[d]["A조"]["참가자"][language]
+                v2 = get_empty_count(a_ws_t, col, header_row, alloc_rows, "참가자", language)
+        table_special["심사위원"].append(v1)
+        table_special["참가자"].append(v2)
     st.markdown("#### 7/18–7/20")
-    table2 = {"날짜": [], "심사위원": [], "참가자": []}
-    for date in special_dates:
-        table2["날짜"].append(date)
-        table2["심사위원"].append("")  # TODO: implement
-        table2["참가자"].append("")  # TODO: implement
-    st.table(table2)
+    st.table(table_special)
