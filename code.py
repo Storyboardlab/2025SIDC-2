@@ -3,6 +3,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import re
 import json
+import pandas as pd
 
 # Google Sheets setup
 @st.cache_resource(ttl=60)
@@ -208,13 +209,11 @@ if st.button("빈자리 확인"):
         if not a_available:
             st.write("없음")
         else:
-            for slot in a_available:
-                st.write(f"{slot['date']} - {slot['language']} - {slot['role']} - 남은 자리: {slot['available']}")
+            st.dataframe(pd.DataFrame(a_available))
         st.write("#### B조 빈자리")
         if not b_available:
             st.write("없음")
         else:
-            for slot in b_available:
-                st.write(f"{slot['date']} - {slot['language']} - {slot['role']} - 남은 자리: {slot['available']}")
+            st.dataframe(pd.DataFrame(b_available))
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
