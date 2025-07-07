@@ -141,3 +141,30 @@ if name:
         st.error(f"스프레드시트 접근 중 오류 발생: {e}")
 else:
     st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
+
+# --- 빈자리 확인 Section ---
+st.subheader("빈자리 확인")
+language = st.radio("언어를 선택하세요:", ["영어", "중국어", "일본어"], horizontal=True)
+
+if language:
+    # Dates for each table type
+    normal_dates = ["7/10(목)", "7/11(금)", "7/12(토)", "7/13(일)", "7/14(화)", "7/15(화)", "7/16(수)", "7/17(목)", "7/21(월)", "7/22(화)"]
+    special_dates = ["7/18(금)", "7/19(토)", "7/20(일)"]
+
+    # Table for normal dates (7/10–7/17, 7/21–7/22)
+    st.markdown("#### 7/10–7/17, 7/21–7/22")
+    st.table({
+        "날짜": normal_dates,
+        "A조 - 심사위원": ["" for _ in normal_dates],
+        "A조 - 참가자": ["" for _ in normal_dates],
+        "B조 - 심사위원": ["" for _ in normal_dates],
+        "B조 - 참가자": ["" for _ in normal_dates],
+    })
+
+    # Table for special dates (7/18–7/20)
+    st.markdown("#### 7/18–7/20")
+    st.table({
+        "날짜": special_dates,
+        "심사위원": ["" for _ in special_dates],
+        "참가자": ["" for _ in special_dates],
+    })
