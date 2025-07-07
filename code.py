@@ -3,7 +3,6 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import re
 import json
-import pandas as pd
 
 # Google Sheets setup
 @st.cache_resource(ttl=60)
@@ -205,14 +204,18 @@ if name:
 if a_ws_t:
     st.subheader("7/13(일) 빈 슬롯 현황 (A조)")
     a_slots = find_available_slots(a_ws_t)
-    # Prepare data for chart
-    chart_data = pd.DataFrame({
-        'Section': [slot['section'] for slot in a_slots],
-        'Available': [slot['available_slots'] for slot in a_slots],
-        'Total': [slot['total_slots'] for slot in a_slots],
-    })
-    chart_data = chart_data.set_index('Section')
-    st.bar_chart(chart_data[['Available', 'Total']])
+    # Mermaid graph
+    mermaid_lines = ["graph TD"]
+    for i, slot in enumerate(a_slots):
+        node_id = f"S{i}"
+        label = f"{slot['section']}\\n{slot['available_slots']} / {slot['total_slots']} ({slot['status']})"
+        mermaid_lines.append(f"    {node_id}[\"{label}\"]")
+    mermaid_code = '\n'.join(mermaid_lines)
+    st.markdown(f"""
+```mermaid
+{mermaid_code}
+```
+""", unsafe_allow_html=True)
     # Also show details as before
     for slot in a_slots:
         st.write(f"{slot['section']} | 헤더: {slot['header']} | 총 슬롯: {slot['total_slots']} | 남은 슬롯: {slot['available_slots']} | 상태: {slot['status']}")
