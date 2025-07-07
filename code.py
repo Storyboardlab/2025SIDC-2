@@ -199,21 +199,52 @@ def find_available_slots(worksheet, date_range_map):
 
 st.markdown("---")
 st.subheader("빈자리 확인")
-if st.button("빈자리 확인"):
+
+# Side-by-side language buttons
+col1, col2, col3 = st.columns(3)
+language_selected = None
+with col1:
+    if st.button("영어"):
+        language_selected = "영어"
+with col2:
+    if st.button("중국어"):
+        language_selected = "중국어"
+with col3:
+    if st.button("일본어"):
+        language_selected = "일본어"
+
+if language_selected:
     try:
         a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_available = find_available_slots(a_ws_t, interpreter_date_range_map)
-        b_available = find_available_slots(b_ws_t, interpreter_date_range_map)
-        st.write("#### A조 빈자리")
-        if not a_available:
-            st.write("없음")
-        else:
-            st.dataframe(pd.DataFrame(a_available))
-        st.write("#### B조 빈자리")
-        if not b_available:
-            st.write("없음")
-        else:
-            st.dataframe(pd.DataFrame(b_available))
+        a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
+        b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
+        # Combine and group by date
+        from collections import defaultdict
+        grouped = defaultdict(lambda: {"A조": {"심사위원": 0, "참가자": 0}, "B조": {"심사위원": 0, "참가자": 0}, "N/A": {"심사위원": 0, "참가자": 0}})
+        special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
+        for slot in a_available:
+            date = slot["date"]
+            role = slot["role"]
+            count = slot["available"]
+            group = "N/A" if date in special_dates else "A조"
+            grouped[date][group][role] += count
+        for slot in b_available:
+            date = slot["date"]
+            role = slot["role"]
+            count = slot["available"]
+            group = "N/A" if date in special_dates else "B조"
+            grouped[date][group][role] += count
+        # Display
+        for date in sorted(grouped.keys()):
+            st.markdown(f"### {date}")
+            for group in ["A조", "B조", "N/A"]:
+                if grouped[date][group]["심사위원"] == 0 and grouped[date][group]["참가자"] == 0:
+                    continue
+                st.markdown(f"**{group}**")
+                if grouped[date][group]["심사위원"] > 0:
+                    st.write(f"- 심사위원: {grouped[date][group]['심사위원']} 자리")
+                if grouped[date][group]["참가자"] > 0:
+                    st.write(f"- 참가자: {grouped[date][group]['참가자']} 자리")
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
