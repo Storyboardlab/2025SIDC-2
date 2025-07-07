@@ -100,7 +100,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -272,6 +272,8 @@ def find_available_slots(worksheet, date_range_map):
                 m = re.search(r"\d+", header_cell)
                 if m:
                     quota = int(m.group())
+            # DEBUG PRINTS
+            print(f"DEBUG: date={date_label}, role={role}, lang={language}, col_idx={col_idx}, header_row={header_row}, header_cell='{header_cell}', quota={quota}, range=({row_start_idx},{row_end_idx})")
             if not header_cell or header_cell.strip() == "" or quota is None:
                 available_count = "N/A"
             else:
