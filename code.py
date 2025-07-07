@@ -146,25 +146,110 @@ else:
 st.subheader("빈자리 확인")
 language = st.radio("언어를 선택하세요:", ["영어", "중국어", "일본어"], horizontal=True)
 
+# Row mappings for each date range and category
+row_mappings = {
+    # 7/10–7/12
+    "7/10(목)": {
+        "A조": {
+            "심사위원": {"영어": 13, "중국어": [15, 16], "일본어": 18},
+            "참가자": {"영어": [20, 21], "중국어": [23, 24], "일본어": 26},
+        },
+        "B조": None  # Add if needed
+    },
+    "7/11(금)": {
+        "A조": {
+            "심사위원": {"영어": 13, "중국어": [15, 16], "일본어": 18},
+            "참가자": {"영어": [20, 21], "중국어": [23, 24], "일본어": 26},
+        },
+        "B조": None
+    },
+    "7/12(토)": {
+        "A조": {
+            "심사위원": {"영어": 13, "중국어": [15, 16], "일본어": 18},
+            "참가자": {"영어": [20, 21], "중국어": [23, 24], "일본어": 26},
+        },
+        "B조": None
+    },
+    # 7/13–7/19
+    "7/13(일)": {
+        "A조": {
+            "심사위원": {"영어": [37, 41], "중국어": [43, 48], "일본어": [50, 52]},
+            "참가자": {"영어": [54, 55], "중국어": [57, 58], "일본어": 60},
+        },
+        "B조": None
+    },
+    # ... (repeat for other dates)
+}
+
+# Helper to get worksheet data
+@st.cache_data(ttl=60)
+def get_sheet_data(tab_name):
+    ws = get_worksheet(tab_name)
+    return ws.get_all_values()
+
+def get_slot_status(data, col, rows, header_row, role, lang):
+    # rows: int or [start, end]
+    if isinstance(rows, int):
+        slot_rows = [rows-1]  # 0-based
+    else:
+        slot_rows = list(range(rows[0]-1, rows[-1]))
+    # Header cell is row above first slot
+    header = data[header_row-1][col] if header_row-1 < len(data) and col < len(data[0]) else ""
+    if not header or not re.search(rf"\[{role}\]\s*{lang}", header):
+        return "N/A"
+    m = re.search(r"(\d+)$", header)
+    total = int(m.group(1)) if m else len(slot_rows)
+    filled = 0
+    for r in slot_rows:
+        if r < len(data) and col < len(data[r]):
+            cell = data[r][col]
+            if role == "심사위원":
+                if cell and not ("(no interpreter)" in cell or cell.strip() == ""):
+                    filled += 1
+            else:  # 참가자
+                if cell and cell.strip():
+                    filled += 1
+    return f"{filled}/{total}"
+
 if language:
     # Dates for each table type
     normal_dates = ["7/10(목)", "7/11(금)", "7/12(토)", "7/13(일)", "7/14(화)", "7/15(화)", "7/16(수)", "7/17(목)", "7/21(월)", "7/22(화)"]
     special_dates = ["7/18(금)", "7/19(토)", "7/20(일)"]
 
+    # Get data for A조 and B조
+    try:
+        a_data = get_sheet_data("본선 기간(통역팀-A조)")
+        b_data = get_sheet_data("본선 기간(통역팀-B조)")
+    except Exception as e:
+        st.error(f"스프레드시트 접근 중 오류 발생: {e}")
+        a_data, b_data = [], []
+
     # Table for normal dates (7/10–7/17, 7/21–7/22)
     st.markdown("#### 7/10–7/17, 7/21–7/22")
-    st.table({
-        "날짜": normal_dates,
-        "A조 - 심사위원": ["" for _ in normal_dates],
-        "A조 - 참가자": ["" for _ in normal_dates],
-        "B조 - 심사위원": ["" for _ in normal_dates],
-        "B조 - 참가자": ["" for _ in normal_dates],
-    })
+    table = {"날짜": [], "A조 - 심사위원": [], "A조 - 참가자": [], "B조 - 심사위원": [], "B조 - 참가자": []}
+    for date in normal_dates:
+        table["날짜"].append(date)
+        # Example: only A조 for now, col=5 (F)
+        # TODO: Map col and rows for each date/category
+        if date in row_mappings:
+            a_map = row_mappings[date]["A조"]
+            # 심사위원
+            table["A조 - 심사위원"].append(get_slot_status(a_data, 5, a_map["심사위원"][language], 12, "심사위원", language))
+            # 참가자
+            table["A조 - 참가자"].append(get_slot_status(a_data, 5, a_map["참가자"][language], 19, "참가자", language))
+        else:
+            table["A조 - 심사위원"].append("")
+            table["A조 - 참가자"].append("")
+        # B조: implement similarly if needed
+        table["B조 - 심사위원"].append("")
+        table["B조 - 참가자"].append("")
+    st.table(table)
 
     # Table for special dates (7/18–7/20)
     st.markdown("#### 7/18–7/20")
-    st.table({
-        "날짜": special_dates,
-        "심사위원": ["" for _ in special_dates],
-        "참가자": ["" for _ in special_dates],
-    })
+    table2 = {"날짜": [], "심사위원": [], "참가자": []}
+    for date in special_dates:
+        table2["날짜"].append(date)
+        table2["심사위원"].append("")  # TODO: implement
+        table2["참가자"].append("")  # TODO: implement
+    st.table(table2)
