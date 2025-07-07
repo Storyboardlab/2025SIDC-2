@@ -99,7 +99,62 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울국제무용콩쿠르 서포터즈")
+def find_available_slots(worksheet):
+    """
+    Detect available interpreter slots for 7/13(일) (B34:B61) only.
+    Returns a list of dicts: {section, header, total_slots, available_slots, status, details}
+    """
+    # 0-based indices for B column (col_idx = 1)
+    slot_sections = [
+        {"section": "[심사위원] 영어", "header_row": 35, "slot_rows": list(range(36, 41+1))},
+        {"section": "[심사위원] 중국어", "header_row": 42, "slot_rows": list(range(43, 48+1))},
+        {"section": "[심사위원] 일본어", "header_row": 49, "slot_rows": list(range(50, 52+1))},
+        {"section": "[참가자] 영어", "header_row": 53, "slot_rows": list(range(54, 55+1))},
+        {"section": "[참가자] 중국어", "header_row": 56, "slot_rows": list(range(57, 58+1))},
+        {"section": "[참가자] 일본어", "header_row": 59, "slot_rows": [60]},
+    ]
+    col_idx = 1  # B column
+    data = worksheet.get_all_values()
+    results = []
+    for section in slot_sections:
+        header = data[section["header_row"]][col_idx] if section["header_row"] < len(data) and col_idx < len(data[section["header_row"]]) else ""
+        if not header.strip():
+            results.append({"section": section["section"], "status": "N/A", "header": "", "total_slots": 0, "available_slots": 0, "details": []})
+            continue
+        # Parse slot count from header, e.g., [심사위원] 영어 2
+        m = re.match(r"\[[^\]]+\]\s*([^\d]+)?(\d+)?", header)
+        slot_count = None
+        if m and m.group(2):
+            slot_count = int(m.group(2))
+        else:
+            slot_count = len(section["slot_rows"])
+        available = 0
+        details = []
+        for row in section["slot_rows"]:
+            if row >= len(data):
+                details.append("(out of range)")
+                continue
+            cell = data[row][col_idx] if col_idx < len(data[row]) else ""
+            # Available if blank or only [judge]
+            if not cell.strip():
+                available += 1
+                details.append("(blank)")
+            elif re.match(r"^\[[^\]]+\]$", cell.strip()):
+                available += 1
+                details.append(cell.strip())
+            else:
+                details.append(cell.strip())
+        results.append({
+            "section": section["section"],
+            "header": header,
+            "total_slots": slot_count,
+            "available_slots": available,
+            "status": "OK" if available > 0 else "Full",
+            "details": details
+        })
+    return results
+
+st.title("2025 서울 국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -136,6 +191,12 @@ if name:
 
         st.subheader("7/18 ~ 7/20 출근일자")
         display_assignments(a_special)
+
+        st.subheader("7/13(일) 빈 슬롯 현황 (A조)")
+        a_slots = find_available_slots(a_ws_t)
+        for slot in a_slots:
+            st.write(f"{slot['section']} | 헤더: {slot['header']} | 총 슬롯: {slot['total_slots']} | 남은 슬롯: {slot['available_slots']} | 상태: {slot['status']}")
+            st.write(f"  세부: {slot['details']}")
 
     except Exception as e:
         st.error(f"스프레드시트 접근 중 오류 발생: {e}")
