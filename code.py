@@ -25,21 +25,21 @@ def get_worksheet(tab_name):
     return sheet.worksheet(tab_name)
 
 # Date and range mapping for 통역팀 tabs
-interpreter_date_range_map = [
-    ("7/10(목)", "F7:F27"),
-    ("7/11(금)", "G10:G27"),
-    ("7/12(토)", "H10:H27"),
-    ("7/13(일)", "B34:B61"),
-    ("7/14(화)", "C34:C61"),
-    ("7/15(화)", "D34:D61"),
-    ("7/16(수)", "E34:E61"),
-    ("7/17(목)", "F34:F61"),
-    ("7/18(금)", "G34:G61"),
-    ("7/19(토)", "H34:H61"),
-    ("7/20(일)", "B68:B84"),
-    ("7/21(월)", "C68:C84"),
-    ("7/22(화)", "D68:D84"),
-]
+interpreter_date_range_map = {
+    "7/22(화)": {
+        "참가자": {
+            "중국어": {
+                "col": "D",
+                "header_row": 81,
+                "start_row": 82,
+                "end_row": 83
+            },
+            # ... other languages
+        },
+        # ... other roles
+    },
+    # ... other dates
+}
 
 # Hardcoded slot row ranges for each date/role/language
 allocation_ranges = {
@@ -208,7 +208,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울국제무용콩쿠르 서포터즈")
+st.title("2025 서울 국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -252,54 +252,62 @@ else:
     st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
 
 # --- 빈자리 확인 기능 ---
-def find_available_slots(worksheet, date_range_map, allocation_ranges, selected_date=None):
-    data = worksheet.get_all_values()
-    assignments = []
-    for date_label, cell_range in date_range_map:
-        if selected_date and date_label != selected_date:
-            continue
-        if date_label not in allocation_ranges:
-            continue
-        match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
-        if not match:
-            continue
-        col_start, row_start, col_end, row_end = match.groups()
-        col_idx = ord(col_start) - ord('A')
-        for (role, language), (row_start_idx, row_end_idx) in allocation_ranges[date_label].items():
-            # Header is one row above the start
-            header_row = row_start_idx - 1
-            header_cell = data[header_row][col_idx] if header_row < len(data) and col_idx < len(data[header_row]) else ""
-            # Parse N from header
-            quota = None
-            if header_cell and header_cell.strip():
-                m = re.search(r"\d+", header_cell)
-                if m:
-                    quota = int(m.group())
-            if not header_cell or header_cell.strip() == "" or quota is None:
-                available_count = "N/A"
-                filled = "N/A"
-            else:
-                filled = 0
-                for row in range(row_start_idx, row_end_idx + 1):
-                    if row < len(data) and col_idx < len(data[row]):
-                        cell = data[row][col_idx]
-                        if role == "참가자":
-                            if cell and cell.strip() != "":
-                                filled += 1
-                        elif role == "심사위원":
-                            m2 = re.match(r"\[[^\]]+\]\s*(.+)", cell or "")
-                            if m2 and m2.group(1).strip():
-                                filled += 1
-                available_count = max(0, quota - filled)
-            assignments.append({
-                "date": date_label,
-                "role": role,
-                "language": language,
-                "quota": quota if quota is not None else "N/A",
-                "filled": filled,
-                "available": available_count
-            })
-    return assignments
+def col_letter_to_index(col_letter):
+    """Convert Excel/Sheets column letter (A, B, C, ...) to 0-based index."""
+    col_letter = col_letter.upper()
+    index = 0
+    for char in col_letter:
+        index = index * 26 + (ord(char) - ord('A') + 1)
+    return index - 1
+
+def find_available_slots(sheet, interpreter_date_range_map):
+    results = []
+    for date, roles in interpreter_date_range_map.items():
+        for role, langs in roles.items():
+            for language, section_info in langs.items():
+                col_letter = section_info['col']
+                col_idx = col_letter_to_index(col_letter)
+                header_row = section_info['header_row']
+                start_row = section_info['start_row']
+                end_row = section_info['end_row']
+
+                header_cell = (
+                    sheet[header_row][col_idx]
+                    if header_row < len(sheet) and col_idx < len(sheet[header_row])
+                    else None
+                )
+
+                quota = None
+                if header_cell:
+                    match = re.search(r'\[(.*?)\]\s*.*?(\d+)', header_cell)
+                    if match:
+                        quota = int(match.group(2))
+                    else:
+                        nums = re.findall(r'\d+', header_cell)
+                        if nums:
+                            quota = int(nums[0])
+
+                slot_cells = [
+                    sheet[r][col_idx] if r < len(sheet) and col_idx < len(sheet[r]) else None
+                    for r in range(start_row, end_row + 1)
+                ]
+
+                if role == "심사위원":
+                    filled = sum(1 for v in slot_cells if v and " " in v.strip())
+                else:
+                    filled = sum(1 for v in slot_cells if v and v.strip())
+
+                available = quota - filled if quota is not None else "N/A"
+
+                results.append({
+                    "date": date,
+                    "role": role,
+                    "language": language,
+                    "quota": quota if quota is not None else "N/A",
+                    "filled": filled if quota is not None else "N/A",
+                    "available": available,
+                })
+    return results
 
 st.markdown("---")
 st.subheader("빈자리 확인")
@@ -324,8 +332,8 @@ if language_selected:
     try:
         a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map, allocation_ranges) if slot["language"] == language_selected]
-        b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map, allocation_ranges) if slot["language"] == language_selected]
+        a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
+        b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
         all_dates = [d for d, _ in interpreter_date_range_map]
         # Main table: exclude special dates
@@ -457,103 +465,11 @@ selected_date = st.selectbox("날짜 선택", [d for d, _ in interpreter_date_ra
 tab_choice = st.radio("조 선택", ["A조", "B조"])
 try:
     ws = get_worksheet(f"본선 기간(통역팀-{tab_choice})")
-    slot_details = find_available_slots(ws, interpreter_date_range_map, allocation_ranges, selected_date=selected_date)
+    slot_details = find_available_slots(ws, interpreter_date_range_map)
     if slot_details:
-        import pandas as pd
-        st.table(pd.DataFrame(slot_details))
+        df = pd.DataFrame(slot_details)
+        st.dataframe(df)
     else:
         st.write("No slot sections found for this date/조.")
 except Exception as e:
     st.error(f"슬롯 상세 보기 오류: {e}")
-
-def col_letter_to_index(col_letter):
-    # Converts Excel/Sheets column letter (A, B, C, ...) to 0-based index
-    col_letter = col_letter.upper()
-    index = 0
-    for char in col_letter:
-        index = index * 26 + (ord(char) - ord('A') + 1)
-    return index - 1
-
-def debug_slot_section(sheet, date, role, language, section_info):
-    col_letter = section_info['col']
-    col_idx = col_letter_to_index(col_letter)
-    header_row = section_info['header_row']
-    start_row = section_info['start_row']
-    end_row = section_info['end_row']
-
-    # Get header cell value
-    header_cell = (
-        sheet[header_row][col_idx]
-        if header_row < len(sheet) and col_idx < len(sheet[header_row])
-        else None
-    )
-
-    # Parse quota from header
-    quota = None
-    if header_cell:
-        match = re.search(r'\[(.*?)\]\s*.*?(\d+)', header_cell)
-        if match:
-            quota = int(match.group(2))
-        else:
-            nums = re.findall(r'\d+', header_cell)
-            if nums:
-                quota = int(nums[0])
-
-    # Get slot cell values
-    slot_cells = []
-    for r in range(start_row, end_row + 1):
-        if r < len(sheet) and col_idx < len(sheet[r]):
-            slot_cells.append((r, sheet[r][col_idx]))
-        else:
-            slot_cells.append((r, None))
-
-    # Count filled slots
-    if role == "심사위원":
-        filled = sum(1 for _, v in slot_cells if v and " " in v.strip())
-    else:  # 참가자
-        filled = sum(1 for _, v in slot_cells if v and v.strip())
-
-    available = quota - filled if quota is not None else "N/A"
-
-    # Build debug info string
-    debug_str = f"--- {date} / {role} / {language} ---\n"
-    debug_str += f"Column: {col_letter} (index {col_idx})\n"
-    debug_str += f"Header cell [row {header_row+1}, col {col_letter}]: {repr(header_cell)}\n"
-    debug_str += f"Quota parsed: {quota}\n"
-    debug_str += "Slot cells:\n"
-    for r, v in slot_cells:
-        debug_str += f"  [row {r+1}, col {col_letter}] = {repr(v)}\n"
-    debug_str += f"Filled slots: {filled}\n"
-    debug_str += f"Available slots: {available}\n\n"
-    return debug_str
-
-# --- ULTIMATE DEBUG UI SECTION ---
-
-# 1. Sheet preview
-if 'sheet' in globals():
-    st.subheader('🔍 Sheet Preview (first 10 rows × 10 columns)')
-    preview = [row[:10] for row in sheet[:10]]
-    st.table(preview)
-else:
-    st.warning("No 'sheet' variable found.")
-
-# 2. Mapping keys and sample
-if 'interpreter_date_range_map' in globals():
-    st.subheader('🗺️ Mapping Keys')
-    st.code(str(list(interpreter_date_range_map.keys())))
-    st.subheader('🗺️ Mapping Sample (truncated)')
-    st.code(json.dumps(interpreter_date_range_map, ensure_ascii=False, indent=2)[:2000])
-else:
-    st.warning("No 'interpreter_date_range_map' variable found.")
-
-# 3. Slot debug output
-if 'interpreter_date_range_map' in globals() and 'sheet' in globals():
-    debug_output = ""
-    for date, roles in interpreter_date_range_map.items():
-        for role, langs in roles.items():
-            for language, section_info in langs.items():
-                debug_output += debug_slot_section(sheet, date, role, language, section_info)
-    st.subheader("🪲 Debug Slot Section Output (copy-paste below)")
-    st.code(debug_output, language="text")
-else:
-    st.warning("Cannot run slot debug: missing variables.")
