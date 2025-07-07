@@ -221,52 +221,45 @@ if language_selected:
         b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
         import pandas as pd
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
-        # Build a dict: {date: {A조: {role: count}, B조: {role: count}}}
-        all_dates = sorted(set([slot["date"] for slot in a_available + b_available]))
+        # Use all dates from interpreter_date_range_map, in order
+        all_dates = [d for d, _ in interpreter_date_range_map]
         table = {}
         for date in all_dates:
-            table[date] = {"A조-심사위원": 0, "A조-참가자": 0, "B조-심사위원": 0, "B조-참가자": 0}
+            if date in special_dates:
+                table[date] = {"A조-심사위원": "N/A", "A조-참가자": "N/A", "B조-심사위원": "N/A", "B조-참가자": "N/A"}
+            else:
+                table[date] = {"A조-심사위원": 0, "A조-참가자": 0, "B조-심사위원": 0, "B조-참가자": 0}
         for slot in a_available:
             date = slot["date"]
             role = slot["role"]
             count = slot["available"]
             if date in special_dates:
-                continue  # handled below
-            if role == "심사위원":
-                table[date]["A조-심사위원"] += count
-            elif role == "참가자":
-                table[date]["A조-참가자"] += count
+                if role == "심사위원":
+                    table[date]["A조-심사위원"] = count
+                elif role == "참가자":
+                    table[date]["A조-참가자"] = count
+            else:
+                if role == "심사위원":
+                    table[date]["A조-심사위원"] += count
+                elif role == "참가자":
+                    table[date]["A조-참가자"] += count
         for slot in b_available:
             date = slot["date"]
             role = slot["role"]
             count = slot["available"]
             if date in special_dates:
-                continue
-            if role == "심사위원":
-                table[date]["B조-심사위원"] += count
-            elif role == "참가자":
-                table[date]["B조-참가자"] += count
-        # Add special dates (7/18~20) as N/A
-        for date in sorted(special_dates):
-            a_row = next((slot for slot in a_available if slot["date"] == date), None)
-            b_row = next((slot for slot in b_available if slot["date"] == date), None)
-            table[date] = {
-                "A조-심사위원": "N/A", "A조-참가자": "N/A",
-                "B조-심사위원": "N/A", "B조-참가자": "N/A"
-            }
-            if a_row:
-                if a_row["role"] == "심사위원":
-                    table[date]["A조-심사위원"] = a_row["available"]
-                elif a_row["role"] == "참가자":
-                    table[date]["A조-참가자"] = a_row["available"]
-            if b_row:
-                if b_row["role"] == "심사위원":
-                    table[date]["B조-심사위원"] = b_row["available"]
-                elif b_row["role"] == "참가자":
-                    table[date]["B조-참가자"] = b_row["available"]
+                if role == "심사위원":
+                    table[date]["B조-심사위원"] = count
+                elif role == "참가자":
+                    table[date]["B조-참가자"] = count
+            else:
+                if role == "심사위원":
+                    table[date]["B조-심사위원"] += count
+                elif role == "참가자":
+                    table[date]["B조-참가자"] += count
         # Build DataFrame
         rows = []
-        for date in sorted(table.keys()):
+        for date in all_dates:
             row = {"날짜": date}
             row.update(table[date])
             rows.append(row)
