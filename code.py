@@ -215,38 +215,19 @@ def find_available_slots(worksheet, date_range_map):
 st.markdown("---")
 st.subheader("빈자리 확인")
 
-# Custom HTML/CSS for language selection buttons
-if "selected_language" not in st.session_state:
-    st.session_state.selected_language = "영어"
-
+# Language selection using st.radio (always one line, left-aligned)
 lang_labels = ["영어", "중국어", "일본어"]
-lang_keys = ["영어", "중국어", "일본어"]
-lang_html = "<div style='display:flex;gap:8px;align-items:center;'>"
-for label, key in zip(lang_labels, lang_keys):
-    selected = (st.session_state.selected_language == key)
-    style = (
-        "background:#2563eb;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:18px;cursor:pointer;white-space:nowrap;"
-        if selected else
-        "background:#f1f1f1;color:#222;border:none;padding:8px 20px;border-radius:6px;font-size:18px;cursor:pointer;white-space:nowrap;"
-    )
-    lang_html += f"<form style='display:inline;' action='' method='post'><button name='langbtn' value='{key}' style='{style}'>{label}</button></form>"
-lang_html += "</div>"
-lang_event = st.markdown(lang_html, unsafe_allow_html=True)
+if "selected_language" not in st.session_state:
+    st.session_state.selected_language = lang_labels[0]
 
-# Button click handling (simulate POST)
-import streamlit as st
-from streamlit import runtime
-if runtime.exists():
-    import streamlit.web.server.websocket_headers as _wh
-    from streamlit.web.server import Server
-    from urllib.parse import parse_qs
-    ctx = st.runtime.scriptrunner.get_script_run_ctx()
-    if ctx and hasattr(ctx, 'request') and ctx.request:
-        body = ctx.request.body.decode() if hasattr(ctx.request, 'body') else ''
-        if 'langbtn=' in body:
-            val = parse_qs(body).get('langbtn', [None])[0]
-            if val in lang_keys:
-                st.session_state.selected_language = val
+selected = st.radio(
+    "언어 선택",
+    lang_labels,
+    index=lang_labels.index(st.session_state.selected_language),
+    horizontal=True,
+    key="selected_language_radio"
+)
+st.session_state.selected_language = selected
 
 language_selected = st.session_state.selected_language
 
