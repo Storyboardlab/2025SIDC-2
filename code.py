@@ -215,16 +215,38 @@ def find_available_slots(worksheet, date_range_map):
 st.markdown("---")
 st.subheader("빈자리 확인")
 
-# Language selection buttons, left-aligned and visually persistent
+# Custom HTML/CSS for language selection buttons
 if "selected_language" not in st.session_state:
-    st.session_state.selected_language = None
+    st.session_state.selected_language = "영어"
 
-lang_labels = ["영어\u00A0", "중국어\u00A0", "일본어\u00A0"]
+lang_labels = ["영어", "중국어", "일본어"]
 lang_keys = ["영어", "중국어", "일본어"]
-col_btns = st.columns([1,1,1,8])
-for i, (label, key) in enumerate(zip(lang_labels, lang_keys)):
-    if col_btns[i].button(label, key=f"langbtn_{key}", use_container_width=True, type=("primary" if st.session_state.selected_language == key else "secondary")):
-        st.session_state.selected_language = key
+lang_html = "<div style='display:flex;gap:8px;align-items:center;'>"
+for label, key in zip(lang_labels, lang_keys):
+    selected = (st.session_state.selected_language == key)
+    style = (
+        "background:#2563eb;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:18px;cursor:pointer;white-space:nowrap;"
+        if selected else
+        "background:#f1f1f1;color:#222;border:none;padding:8px 20px;border-radius:6px;font-size:18px;cursor:pointer;white-space:nowrap;"
+    )
+    lang_html += f"<form style='display:inline;' action='' method='post'><button name='langbtn' value='{key}' style='{style}'>{label}</button></form>"
+lang_html += "</div>"
+lang_event = st.markdown(lang_html, unsafe_allow_html=True)
+
+# Button click handling (simulate POST)
+import streamlit as st
+from streamlit import runtime
+if runtime.exists():
+    import streamlit.web.server.websocket_headers as _wh
+    from streamlit.web.server import Server
+    from urllib.parse import parse_qs
+    ctx = st.runtime.scriptrunner.get_script_run_ctx()
+    if ctx and hasattr(ctx, 'request') and ctx.request:
+        body = ctx.request.body.decode() if hasattr(ctx.request, 'body') else ''
+        if 'langbtn=' in body:
+            val = parse_qs(body).get('langbtn', [None])[0]
+            if val in lang_keys:
+                st.session_state.selected_language = val
 
 language_selected = st.session_state.selected_language
 
@@ -234,7 +256,6 @@ if language_selected:
         b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
         a_available = [slot for slot in find_available_slots(a_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
         b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
-        import pandas as pd
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
         all_dates = [d for d, _ in interpreter_date_range_map]
         table = {}
@@ -276,8 +297,26 @@ if language_selected:
             row = {"날짜": date}
             row.update(table[date])
             rows.append(row)
-        import pandas as pd
-        df = pd.DataFrame(rows)
-        st.table(df)
+        # Custom HTML table with nowrap style
+        table_html = """
+        <style>
+        .nowrap-table td, .nowrap-table th { white-space:nowrap; font-size:16px; }
+        </style>
+        <table class='nowrap-table' border='1' style='border-collapse:collapse;width:auto;'>
+            <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>A조-심사위원</th>
+                    <th>A조-참가자</th>
+                    <th>B조-심사위원</th>
+                    <th>B조-참가자</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        for row in rows:
+            table_html += f"<tr><td>{row['날짜']}</td><td>{row['A조-심사위원']}</td><td>{row['A조-참가자']}</td><td>{row['B조-심사위원']}</td><td>{row['B조-참가자']}</td></tr>"
+        table_html += "</tbody></table>"
+        st.markdown(table_html, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
