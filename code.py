@@ -215,18 +215,18 @@ def find_available_slots(worksheet, date_range_map):
 st.markdown("---")
 st.subheader("빈자리 확인")
 
-# Side-by-side language buttons
-col1, col2, col3 = st.columns(3)
-language_selected = None
-with col1:
-    if st.button("영어"):
-        language_selected = "영어"
-with col2:
-    if st.button("중국어"):
-        language_selected = "중국어"
-with col3:
-    if st.button("일본어"):
-        language_selected = "일본어"
+# Language selection buttons, left-aligned and visually persistent
+if "selected_language" not in st.session_state:
+    st.session_state.selected_language = None
+
+lang_labels = ["영어", "중국어", "일본어"]
+lang_keys = ["영어", "중국어", "일본어"]
+col_btns = st.columns([1,1,1,8])  # 3 small, 1 large for left alignment
+for i, (label, key) in enumerate(zip(lang_labels, lang_keys)):
+    if col_btns[i].button(label, key=f"langbtn_{key}", use_container_width=True, type=("primary" if st.session_state.selected_language == key else "secondary")):
+        st.session_state.selected_language = key
+
+language_selected = st.session_state.selected_language
 
 if language_selected:
     try:
