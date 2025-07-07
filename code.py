@@ -171,18 +171,30 @@ def find_available_slots(worksheet, date_range_map):
     ]
     # For each week block, define the row offsets for each role/language
     offsets_map = {
-        # 7/10~7/12
+        # 7/10~7/12 (block starts at row 6)
         6: {
+            # Confirmed from reference: adjust as needed
             "심사위원": {"영어": [10], "중국어": [12, 13], "일본어": [15]},
             "참가자": {"영어": [17, 18], "중국어": [20, 21], "일본어": [23]},
         },
-        # 7/13~7/19
+        # 7/13~7/19 (block starts at row 32)
         32: {
-            "심사위원": {"영어": [10,11,12,13,14], "중국어": [16,17,18,19,20,21], "일본어": [23,24,25]},
-            "참가자": {"영어": [27,28], "중국어": [30,31], "일본어": [33]},
+            # 심사위원 영어: [5,6,7,8,9] (rows 37-41, as confirmed for 7/19(토))
+            # Adjust others as needed based on your reference
+            "심사위원": {
+                "영어": [5,6,7,8,9],
+                "중국어": [16,17,18,19,20,21],
+                "일본어": [23,24,25]
+            },
+            "참가자": {
+                "영어": [27,28],
+                "중국어": [30,31],
+                "일본어": [33]
+            },
         },
-        # 7/20~7/22
+        # 7/20~7/22 (block starts at row 68)
         68: {
+            # Adjust as needed based on your reference
             "심사위원": {"영어": [8,9,10], "중국어": [12], "일본어": [14]},
             "참가자": {"영어": [16,17], "중국어": [19,20]},
         },
