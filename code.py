@@ -208,7 +208,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -461,11 +461,12 @@ if language_selected:
 # Remove the debug checkbox and add a new section for slot allocation details
 st.markdown("---")
 st.subheader("슬롯 상세 보기 (선택한 날짜/조)")
-selected_date = st.selectbox("날짜 선택", [d for d, _ in interpreter_date_range_map])
+selected_date = st.selectbox("날짜 선택", list(interpreter_date_range_map.keys()))
 tab_choice = st.radio("조 선택", ["A조", "B조"])
 try:
     ws = get_worksheet(f"본선 기간(통역팀-{tab_choice})")
-    slot_details = find_available_slots(ws, interpreter_date_range_map)
+    sheet = ws.get_all_values()
+    slot_details = find_available_slots(sheet, interpreter_date_range_map)
     if slot_details:
         df = pd.DataFrame(slot_details)
         st.dataframe(df)
