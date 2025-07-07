@@ -221,10 +221,14 @@ if "selected_language" not in st.session_state:
 
 lang_labels = ["영어", "중국어", "일본어"]
 lang_keys = ["영어", "중국어", "일본어"]
-col_btns = st.columns([1,1,1,8])  # 3 small, 1 large for left alignment
+# Use a smaller font and prevent wrapping with markdown, and use st.markdown for spacing
+col_btns = st.columns([1,1,1,8])
 for i, (label, key) in enumerate(zip(lang_labels, lang_keys)):
+    btn_label = f"<span style='white-space:nowrap;font-size:18px;'>{label}</span>"
     if col_btns[i].button(label, key=f"langbtn_{key}", use_container_width=True, type=("primary" if st.session_state.selected_language == key else "secondary")):
         st.session_state.selected_language = key
+    # Display the label below the button to avoid wrapping (optional)
+    # col_btns[i].markdown(btn_label, unsafe_allow_html=True)
 
 language_selected = st.session_state.selected_language
 
