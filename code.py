@@ -99,139 +99,6 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-# --- Slot allocation configuration ---
-# Each entry: (date, section, role, language, header_row, allocation_rows)
-# Section: 'A' or 'B'
-# Role: '심사위원' or '참가자'
-# Language: '영어', '중국어', '일본어'
-# header_row and allocation_rows are 1-based (spreadsheet style)
-allocation_config = [
-    ("7/10(목)", section, "심사위원", "영어", 12, [13])
-    for section in ("A", "B")
-] + [
-    ("7/10(목)", section, "심사위원", "중국어", 14, [15,16])
-    for section in ("A", "B")
-] + [
-    ("7/10(목)", section, "심사위원", "일본어", 17, [18])
-    for section in ("A", "B")
-] + [
-    ("7/10(목)", section, "참가자", "영어", 19, [20,21])
-    for section in ("A", "B")
-] + [
-    ("7/10(목)", section, "참가자", "중국어", 22, [23,24])
-    for section in ("A", "B")
-] + [
-    ("7/10(목)", section, "참가자", "일본어", 25, [26])
-    for section in ("A", "B")
-] + [
-    ("7/11(금)", section, "심사위원", "영어", 12, [13])
-    for section in ("A", "B")
-] + [
-    ("7/11(금)", section, "심사위원", "중국어", 14, [15,16])
-    for section in ("A", "B")
-] + [
-    ("7/11(금)", section, "심사위원", "일본어", 17, [18])
-    for section in ("A", "B")
-] + [
-    ("7/11(금)", section, "참가자", "영어", 19, [20,21])
-    for section in ("A", "B")
-] + [
-    ("7/11(금)", section, "참가자", "중국어", 22, [23,24])
-    for section in ("A", "B")
-] + [
-    ("7/11(금)", section, "참가자", "일본어", 25, [26])
-    for section in ("A", "B")
-] + [
-    ("7/12(토)", section, "심사위원", "영어", 12, [13])
-    for section in ("A", "B")
-] + [
-    ("7/12(토)", section, "심사위원", "중국어", 14, [15,16])
-    for section in ("A", "B")
-] + [
-    ("7/12(토)", section, "심사위원", "일본어", 17, [18])
-    for section in ("A", "B")
-] + [
-    ("7/12(토)", section, "참가자", "영어", 19, [20,21])
-    for section in ("A", "B")
-] + [
-    ("7/12(토)", section, "참가자", "중국어", 22, [23,24])
-    for section in ("A", "B")
-] + [
-    ("7/12(토)", section, "참가자", "일본어", 25, [26])
-    for section in ("A", "B")
-] + [
-    ("7/13(일)", section, "심사위원", "영어", 36, [37,38,39,40,41])
-    for section in ("A", "B")
-] + [
-    ("7/13(일)", section, "심사위원", "중국어", 42, [43,44,45,46,47,48])
-    for section in ("A", "B")
-] + [
-    ("7/13(일)", section, "심사위원", "일본어", 49, [50,51,52])
-    for section in ("A", "B")
-] + [
-    ("7/13(일)", section, "참가자", "영어", 53, [54,55])
-    for section in ("A", "B")
-] + [
-    ("7/13(일)", section, "참가자", "중국어", 56, [57,58])
-    for section in ("A", "B")
-] + [
-    ("7/13(일)", section, "참가자", "일본어", 59, [60])
-    for section in ("A", "B")
-]
-
-def extract_slot_counts(worksheet, language):
-    data = worksheet.get_all_values()
-    results = {}
-    for entry in allocation_config:
-        date, section, role, lang, header_row, alloc_rows = entry
-        if lang != language:
-            continue
-        # Adjust for 0-based index
-        header_row_idx = header_row - 1
-        alloc_row_indices = [r-1 for r in alloc_rows]
-        # Find header cell in the correct column (first non-empty in row)
-        header_cell = None
-        for col in range(len(data[header_row_idx])):
-            cell = data[header_row_idx][col]
-            if cell:
-                header_cell = cell
-                break
-        if not header_cell:
-            total_slots = "N/A"
-        else:
-            m = re.match(r"\[(심사위원|참가자)\]\s*([가-힣]+)\s*(\d+)", header_cell)
-            if m:
-                total_slots = int(m.group(3))
-            else:
-                total_slots = "N/A"
-        filled = 0
-        empty = 0
-        if total_slots != "N/A":
-            for r in alloc_row_indices:
-                for col in range(len(data[r])):
-                    cell = data[r][col]
-                    if role == "심사위원":
-                        # [심사위원이름] interpreter or [심사위원이름] blank
-                        if cell:
-                            judge_match = re.match(r"\[([^\]]+)\](.*)", cell)
-                            if judge_match:
-                                interpreter = judge_match.group(2).strip()
-                                if interpreter:
-                                    filled += 1
-                                else:
-                                    empty += 1
-                    elif role == "참가자":
-                        if cell:
-                            filled += 1
-                        else:
-                            empty += 1
-        results[(date, section, role)] = {
-            "total": total_slots,
-            "filled": filled,
-            "empty": empty if total_slots != "N/A" else "N/A"
-        }
-    return results
-
 st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
@@ -275,8 +142,8 @@ if name:
 else:
     st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
 
-# --- 빈자리 확인 Section ---
-st.subheader("빈자리 확인")
+# Add new section for 빈자리 확인
+st.header("빈자리 확인")
 language = st.radio("언어를 선택하세요:", ["영어", "중국어", "일본어"], horizontal=True)
 
 if language:
@@ -284,55 +151,20 @@ if language:
     normal_dates = ["7/10(목)", "7/11(금)", "7/12(토)", "7/13(일)", "7/14(화)", "7/15(화)", "7/16(수)", "7/17(목)", "7/21(월)", "7/22(화)"]
     special_dates = ["7/18(금)", "7/19(토)", "7/20(일)"]
 
-    # Get worksheets for A조 and B조
-    a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
-    b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-    a_slots = extract_slot_counts(a_ws_t, language)
-    b_slots = extract_slot_counts(b_ws_t, language)
-
-    # Table for normal dates (7/10–7/17, 7/21–7/22)
-    st.markdown("#### 7/10–7/17, 7/21–7/22")
-    table_normal = {
+    # Empty table for normal dates
+    st.subheader("7/10~7/17, 7/21~7/22")
+    st.table({
         "날짜": normal_dates,
-        "A조 - 심사위원": [],
-        "A조 - 참가자": [],
-        "B조 - 심사위원": [],
-        "B조 - 참가자": [],
-    }
-    for date in normal_dates:
-        # 심사위원
-        a_judge = a_slots.get((date, "A", "심사위원"), {}).get("empty", "N/A")
-        a_part = a_slots.get((date, "A", "참가자"), {}).get("empty", "N/A")
-        b_judge = b_slots.get((date, "B", "심사위원"), {}).get("empty", "N/A")
-        b_part = b_slots.get((date, "B", "참가자"), {}).get("empty", "N/A")
-        table_normal["A조 - 심사위원"].append(a_judge)
-        table_normal["A조 - 참가자"].append(a_part)
-        table_normal["B조 - 심사위원"].append(b_judge)
-        table_normal["B조 - 참가자"].append(b_part)
-    st.table(table_normal)
+        "A조 - 심사위원": ["" for _ in normal_dates],
+        "A조 - 참가자": ["" for _ in normal_dates],
+        "B조 - 심사위원": ["" for _ in normal_dates],
+        "B조 - 참가자": ["" for _ in normal_dates],
+    })
 
-    # Table for special dates (7/18–7/20)
-    st.markdown("#### 7/18–7/20")
-    table_special = {
+    # Empty table for special dates
+    st.subheader("7/18~7/20")
+    st.table({
         "날짜": special_dates,
-        "심사위원": [],
-        "참가자": [],
-    }
-    for date in special_dates:
-        # For special dates, sum A+B for each role
-        judge_empty = 0
-        judge_na = True
-        part_empty = 0
-        part_na = True
-        for section, slots in [("A", a_slots), ("B", b_slots)]:
-            judge_val = slots.get((date, section, "심사위원"), {}).get("empty", "N/A")
-            part_val = slots.get((date, section, "참가자"), {}).get("empty", "N/A")
-            if judge_val != "N/A":
-                judge_empty += judge_val
-                judge_na = False
-            if part_val != "N/A":
-                part_empty += part_val
-                part_na = False
-        table_special["심사위원"].append("N/A" if judge_na else judge_empty)
-        table_special["참가자"].append("N/A" if part_na else part_empty)
-    st.table(table_special)
+        "심사위원": ["" for _ in special_dates],
+        "참가자": ["" for _ in special_dates],
+    })
