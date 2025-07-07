@@ -1,170 +1,85 @@
-import streamlit as st
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import re
-import json
+the contents of the graph should be filled with the number of empty slots that are left for each day and position.
 
-# Google Sheets setup
-@st.cache_resource(ttl=60)
-def get_gspread_client():
-    scope = [
-        'https://spreadsheets.google.com/feeds',
-        'https://www.googleapis.com/auth/drive',
-    ]
-    creds_dict = st.secrets["gcp_service_account"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
-    client = gspread.authorize(creds)
-    return client
+How you do it is by doing "total slots" - "filled slots"
+so for example if the total slots is 3
+and filled slots is 1
+the number in the graph should be 2
+because 3-1 = 2
 
-@st.cache_resource(ttl=60)
-def get_worksheet(tab_name):
-    SPREADSHEET_NAME = '1fN2MkfDK2F_mnYv-7S_YjEHaPlMBdGVL_X_EtNHSItg'
-    client = get_gspread_client()
-    sheet = client.open_by_key(SPREADSHEET_NAME)
-    return sheet.worksheet(tab_name)
+I will explain again but the total slots is the number that is in the header
 
-# Date and range mapping for 통역팀 tabs
-interpreter_date_range_map = [
-    ("7/10(목)", "F7:F27"),
-    ("7/11(금)", "G10:G27"),
-    ("7/12(토)", "H10:H27"),
-    ("7/13(일)", "B34:B61"),
-    ("7/14(화)", "C34:C61"),
-    ("7/15(화)", "D34:D61"),
-    ("7/16(수)", "E34:E61"),
-    ("7/17(목)", "F34:F61"),
-    ("7/18(금)", "G34:G61"),
-    ("7/19(토)", "H34:H61"),
-    ("7/20(일)", "B68:B84"),
-    ("7/21(월)", "C68:C84"),
-    ("7/22(화)", "D68:D84"),
-]
+1. Allocation Ranges
+Use these fixed row numbers per category:
+- format: 역할 Rows
+so for example) If it's 심사위원 영어 13
+심사위원 영어 통역 allocations will be in row 13
 
-def find_assignments_by_range(worksheet, name, date_range_map):
-    data = worksheet.get_all_values()
-    assignments = []
-    for date_label, cell_range in date_range_map:
-        # Parse the range, e.g., "E34:E61"
-        match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
-        if not match:
-            continue
-        col_start, row_start, col_end, row_end = match.groups()
-        col_start_idx = ord(col_start) - ord('A')
-        col_end_idx = ord(col_end) - ord('A')
-        row_start_idx = int(row_start) - 1
-        row_end_idx = int(row_end) - 1
+✅ For dates 7/10–7/12:
+심사위원 영어 13
+심사위원 중국어 15:16
+심사위원 일본어 18
+참가자 영어 20:21
+참가자 중국어 23:24
+참가자 일본어 26
+✅ For dates 7/13–7/19:
+심사위원 영어 37:41
+심사위원 중국어 43:48
+심사위원 일본어 50:52
+참가자 영어 54:55
+참가자 중국어 57:58
+참가자 일본어 60
+✅ For dates 7/20–7/22:
+심사위원 영어 71:73
+심사위원 중국어 75
+심사위원 일본어 77
+참가자 영어 79:80
+참가자 중국어 82:83
 
-        for col in range(col_start_idx, col_end_idx + 1):
-            for row in range(row_start_idx, row_end_idx + 1):
-                if row < len(data) and col < len(data[row]):
-                    cell_value = data[row][col]
-                    if cell_value and name in cell_value:
-                        # Look upward in the same column for context
-                        role, language = None, None
-                        for lookup_row in range(row-1, max(row_start_idx-1, -1), -1):
-                            above = data[lookup_row][col]
-                            # Role/language
-                            rl_match = re.match(r"\[(심사위원|참가자)\]\s*(영어|중국어|일본어)", above)
-                            if rl_match and not (role and language):
-                                role = rl_match.group(1)
-                                language = rl_match.group(2)
-                            if role and language:
-                                break
-                        # Judge: extract from the interpreter cell itself
-                        judge = None
-                        judge_match = re.match(r"\[([^\]]+)\]", cell_value)
-                        if judge_match:
-                            judge = judge_match.group(1)
-                        # Optionally, fallback: look upward for judge if not found in cell
-                        if not judge:
-                            for lookup_row in range(row-1, max(row_start_idx-1, -1), -1):
-                                above = data[lookup_row][col]
-                                judge_match = re.match(r"\[([^\]]+)\]", above)
-                                if judge_match:
-                                    judge = judge_match.group(1)
-                                    break
-                        assignments.append({
-                            "date": date_label,
-                            "role": role,
-                            "language": language,
-                            "judge": judge
-                        })
-    # Deduplicate
-    unique = []
-    seen = set()
-    for a in assignments:
-        key = tuple(sorted(a.items()))
-        if key not in seen:
-            seen.add(key)
-            unique.append(a)
-    return unique
+2. Header
+2.1 Is always right above the allocation range
+ex) for rows 82:83 the range is "참가자 중국어"
+the headers for 중국어 참가자 통역 will always be in row 81
+- so since B81 is inside the range of 7/20(일)
+B81 is the header for 중국어 참가자 통역 on 7/20(일)
+hence, that's why the data in B81 is "[참가자] 중국어 2"
 
-st.title("2025 서울국제무용콩쿠르 서포터즈")
-st.subheader("통역팀 배정 내역")
+2.2 format: [역할] 언어 필요인원
+* always refer to the total Quota by accessing the number inside the header!!
+ex) [심사위원] 영어 3
+means the section that corresponds to the header is for 심사위원 영어 통역, and there are a total of 3 spots
+ex) [참가자] 중국어 1
+means the section that corresponds to the header is for 참가자 중국어통역, and there are a total of 1 spots
 
-name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
+3. 심사위원 통역
+- Header format: [심사위원] language number
+* reminder) If header is present, the number at the end = total slots.
+ex) if cell F49 reads "[심사위원] 일본어 1" cuz it's right above allocation range "심사위원 일본어 50:52" it allocates to "심사위원 일본어 통역". and for F50:52, 2 of them will be empty and 1 will be filled with data. Let me explain
+- If header cell is missing/blank, mark as N/A. There is no quota for that day/role.
 
-if name:
-    try:
-        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
-        b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
-        a_assignments = find_assignments_by_range(a_ws_t, name, interpreter_date_range_map)
-        b_assignments = find_assignments_by_range(b_ws_t, name, interpreter_date_range_map)
+Rows below may contain 3 types of data:
+- [name of 심사위원] name of interpreter → filled slot
+- [name of 심사위원] blank → empty slot
+- blank → meaningless, ignore
 
-        special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
-        a_normal = [a for a in a_assignments if a["date"] not in special_dates]
-        a_special = [a for a in a_assignments if a["date"] in special_dates]
+and remember that "[name of 심사위원] name of interpreter → filled slot, [name of 심사위원] blank → empty slot" these two types are are mixed randomly mixed in the allocation range.
+ex) F42:F48
+==== start
+[심사위원] 중국어 4
+blank
+blank
+[가오옌진쯔] 김주연
+[티안] 상지기
+[장샤오메이] 박지현
+[우지에]
+==== end
+You see what I mean by randomly mixed?
 
-        def display_assignments(assignments):
-            if not assignments:
-                st.write("없음")
-                return
-            for a in assignments:
-                if a["role"] == "심사위원" and a.get("judge"):
-                    line = f"{a['date']} - {a['language']} - 심사위원 통역: {a['judge']}"
-                elif a["role"] == "참가자":
-                    line = f"{a['date']} - {a['language']} - 참가자 통역"
-                else:
-                    line = f"{a['date']}"
-                st.write(line)
+4. 참가자 통역
+- Header format example: [참가자] 언어 2
 
-        st.subheader("A조 출근일자")
-        display_assignments(a_normal)
+Rows below contain only interpreter names (no 심사위원 names).
+- Any non-empty cell = filled quota
+- blank = empty quota
+- Same logic: if header is missing/blank, mark as N/A.
 
-        st.subheader("B조 출근일자")
-        display_assignments(b_assignments)
-
-        st.subheader("7/18 ~ 7/20 출근일자")
-        display_assignments(a_special)
-
-    except Exception as e:
-        st.error(f"스프레드시트 접근 중 오류 발생: {e}")
-else:
-    st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
-
-# Add a new section for 빈자리 확인
-st.header("빈자리 확인")
-language = st.radio("언어를 선택하세요:", ["영어", "중국어", "일본어"], horizontal=True)
-
-if language:
-    # Dates for each table type
-    normal_dates = ["7/10(목)", "7/11(금)", "7/12(토)", "7/13(일)", "7/14(화)", "7/15(화)", "7/16(수)", "7/17(목)", "7/21(월)", "7/22(화)"]
-    special_dates = ["7/18(금)", "7/19(토)", "7/20(일)"]
-
-    # Table for normal dates (7/10–7/17, 7/21–7/22)
-    st.subheader("7/10–7/17, 7/21–7/22")
-    st.table({
-        "날짜": normal_dates,
-        "A조 - 심사위원": ["" for _ in normal_dates],
-        "A조 - 참가자": ["" for _ in normal_dates],
-        "B조 - 심사위원": ["" for _ in normal_dates],
-        "B조 - 참가자": ["" for _ in normal_dates],
-    })
-
-    # Table for special dates (7/18–7/20)
-    st.subheader("7/18–7/20")
-    st.table({
-        "날짜": special_dates,
-        "심사위원": ["" for _ in special_dates],
-        "참가자": ["" for _ in special_dates],
-    })
+5. apply @st.cache_resource(ttl=60) as done in the original function
