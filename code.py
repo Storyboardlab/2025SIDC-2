@@ -208,7 +208,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -482,7 +482,11 @@ def debug_slot_section(sheet, date, role, language, section_info):
     end_row = section_info['end_row']
 
     # Get header cell value
-    header_cell = sheet[header_row][col_idx] if header_row < len(sheet) and col_idx < len(sheet[header_row]) else None
+    header_cell = (
+        sheet[header_row][col_idx]
+        if header_row < len(sheet) and col_idx < len(sheet[header_row])
+        else None
+    )
 
     # Parse quota from header
     quota = None
@@ -491,7 +495,6 @@ def debug_slot_section(sheet, date, role, language, section_info):
         if match:
             quota = int(match.group(2))
         else:
-            # fallback: just find the first number
             nums = re.findall(r'\d+', header_cell)
             if nums:
                 quota = int(nums[0])
@@ -524,7 +527,26 @@ def debug_slot_section(sheet, date, role, language, section_info):
     debug_str += f"Available slots: {available}\n\n"
     return debug_str
 
-# Add a Streamlit section to show all debug info for copy-paste
+# --- ULTIMATE DEBUG UI SECTION ---
+
+# 1. Sheet preview
+if 'sheet' in globals():
+    st.subheader('🔍 Sheet Preview (first 10 rows × 10 columns)')
+    preview = [row[:10] for row in sheet[:10]]
+    st.table(preview)
+else:
+    st.warning("No 'sheet' variable found.")
+
+# 2. Mapping keys and sample
+if 'interpreter_date_range_map' in globals():
+    st.subheader('🗺️ Mapping Keys')
+    st.code(str(list(interpreter_date_range_map.keys())))
+    st.subheader('🗺️ Mapping Sample (truncated)')
+    st.code(json.dumps(interpreter_date_range_map, ensure_ascii=False, indent=2)[:2000])
+else:
+    st.warning("No 'interpreter_date_range_map' variable found.")
+
+# 3. Slot debug output
 if 'interpreter_date_range_map' in globals() and 'sheet' in globals():
     debug_output = ""
     for date, roles in interpreter_date_range_map.items():
@@ -533,3 +555,5 @@ if 'interpreter_date_range_map' in globals() and 'sheet' in globals():
                 debug_output += debug_slot_section(sheet, date, role, language, section_info)
     st.subheader("🪲 Debug Slot Section Output (copy-paste below)")
     st.code(debug_output, language="text")
+else:
+    st.warning("Cannot run slot debug: missing variables.")
