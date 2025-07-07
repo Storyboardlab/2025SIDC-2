@@ -100,7 +100,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -487,3 +487,16 @@ def debug_available_slots_7_15_A조(worksheet):
         else:
             i += 1
     return results
+
+# Add Streamlit section for 7/15(화) debug output
+if st.checkbox('Show 7/15(화) 빈자리 디버그 (A조 D36:D60)'):
+    try:
+        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
+        debug_results = debug_available_slots_7_15_A조(a_ws_t)
+        if debug_results:
+            import pandas as pd
+            st.table(pd.DataFrame(debug_results))
+        else:
+            st.write('No sections found in D36:D60.')
+    except Exception as e:
+        st.error(f"7/15(화) 디버그 중 오류 발생: {e}")
