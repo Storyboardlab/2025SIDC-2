@@ -141,3 +141,80 @@ if name:
         st.error(f"스프레드시트 접근 중 오류 발생: {e}")
 else:
     st.info("결과가 나오기 까지 15초 정도 걸릴 수 있습니다.")
+
+# --- 빈자리 확인 기능 ---
+def find_available_slots(worksheet, date_range_map):
+    data = worksheet.get_all_values()
+    available = []
+    for date_label, cell_range in date_range_map:
+        match = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)", cell_range)
+        if not match:
+            continue
+        col_start, row_start, col_end, row_end = match.groups()
+        col_start_idx = ord(col_start) - ord('A')
+        col_end_idx = ord(col_end) - ord('A')
+        row_start_idx = int(row_start) - 1
+        row_end_idx = int(row_end) - 1
+
+        for col in range(col_start_idx, col_end_idx + 1):
+            row = row_start_idx
+            while row <= row_end_idx:
+                if row < len(data) and col < len(data[row]):
+                    cell = data[row][col]
+                    # Header: [역할] 언어 N
+                    header_match = re.match(r"\[(심사위원|참가자)\]\s*(영어|중국어|일본어)\s*(\d+)", cell or "")
+                    if header_match:
+                        role, language, n_slots = header_match.groups()
+                        n_slots = int(n_slots)
+                        available_count = 0
+                        slot_rows = []
+                        for i in range(1, n_slots+1):
+                            slot_row = row + i
+                            if slot_row > row_end_idx or slot_row >= len(data):
+                                continue
+                            slot_cell = data[slot_row][col] if col < len(data[slot_row]) else ""
+                            if role == "참가자":
+                                # 참가자: blank = available
+                                if not slot_cell.strip():
+                                    available_count += 1
+                            elif role == "심사위원":
+                                # 심사위원: blank or only [이름] = available
+                                if not slot_cell.strip():
+                                    available_count += 1
+                                else:
+                                    judge_only = re.match(r"\[[^\]]+\]\s*$", slot_cell)
+                                    if judge_only:
+                                        available_count += 1
+                        if available_count > 0:
+                            available.append({
+                                "date": date_label,
+                                "language": language,
+                                "role": role,
+                                "available": available_count
+                            })
+                        row += n_slots  # skip slot rows
+                row += 1
+    return available
+
+st.markdown("---")
+st.subheader("빈자리 확인")
+if st.button("빈자리 확인"):
+    try:
+        a_ws_t = get_worksheet("본선 기간(통역팀-A조)")
+        b_ws_t = get_worksheet("본선 기간(통역팀-B조)")
+        a_available = find_available_slots(a_ws_t, interpreter_date_range_map)
+        b_available = find_available_slots(b_ws_t, interpreter_date_range_map)
+        st.write("#### A조 빈자리")
+        if not a_available:
+            st.write("없음")
+        else:
+            for slot in a_available:
+                st.write(f"{slot['date']} - {slot['language']} - {slot['role']} - 남은 자리: {slot['available']}")
+        st.write("#### B조 빈자리")
+        if not b_available:
+            st.write("없음")
+        else:
+            for slot in b_available:
+                st.write(f"{slot['date']} - {slot['language']} - {slot['role']} - 남은 자리: {slot['available']}")
+    except Exception as e:
+        st.error(f"빈자리 확인 중 오류 발생: {e}")
