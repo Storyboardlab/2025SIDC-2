@@ -208,7 +208,7 @@ def find_assignments_by_range(worksheet, name, date_range_map):
             unique.append(a)
     return unique
 
-st.title("2025 서울 국제 무용콩쿠르 서포터즈")
+st.title("2025 서울국제무용콩쿠르 서포터즈")
 st.subheader("통역팀 배정 내역")
 
 name = st.text_input("이름을 입력한 후 엔터를 눌러 주세요:")
@@ -512,14 +512,24 @@ def debug_slot_section(sheet, date, role, language, section_info):
 
     available = quota - filled if quota is not None else "N/A"
 
-    # Print debug info
-    print(f"--- {date} / {role} / {language} ---")
-    print(f"Column: {col_letter} (index {col_idx})")
-    print(f"Header cell [row {header_row+1}, col {col_letter}]: {repr(header_cell)}")
-    print(f"Quota parsed: {quota}")
-    print("Slot cells:")
+    # Build debug info string
+    debug_str = f"--- {date} / {role} / {language} ---\n"
+    debug_str += f"Column: {col_letter} (index {col_idx})\n"
+    debug_str += f"Header cell [row {header_row+1}, col {col_letter}]: {repr(header_cell)}\n"
+    debug_str += f"Quota parsed: {quota}\n"
+    debug_str += "Slot cells:\n"
     for r, v in slot_cells:
-        print(f"  [row {r+1}, col {col_letter}] = {repr(v)}")
-    print(f"Filled slots: {filled}")
-    print(f"Available slots: {available}")
-    print("")
+        debug_str += f"  [row {r+1}, col {col_letter}] = {repr(v)}\n"
+    debug_str += f"Filled slots: {filled}\n"
+    debug_str += f"Available slots: {available}\n\n"
+    return debug_str
+
+# Add a Streamlit section to show all debug info for copy-paste
+if 'interpreter_date_range_map' in globals() and 'sheet' in globals():
+    debug_output = ""
+    for date, roles in interpreter_date_range_map.items():
+        for role, langs in roles.items():
+            for language, section_info in langs.items():
+                debug_output += debug_slot_section(sheet, date, role, language, section_info)
+    st.subheader("🪲 Debug Slot Section Output (copy-paste below)")
+    st.code(debug_output, language="text")
