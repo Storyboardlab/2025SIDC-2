@@ -219,7 +219,7 @@ st.subheader("빈자리 확인")
 if "selected_language" not in st.session_state:
     st.session_state.selected_language = None
 
-lang_labels = ["영어", "중국어", "일본어"]
+lang_labels = ["영어\u00A0", "중국어\u00A0", "일본어\u00A0"]
 lang_keys = ["영어", "중국어", "일본어"]
 col_btns = st.columns([1,1,1,8])
 for i, (label, key) in enumerate(zip(lang_labels, lang_keys)):
@@ -236,7 +236,6 @@ if language_selected:
         b_available = [slot for slot in find_available_slots(b_ws_t, interpreter_date_range_map) if slot["language"] == language_selected]
         import pandas as pd
         special_dates = {"7/18(금)", "7/19(토)", "7/20(일)"}
-        # Use all dates from interpreter_date_range_map, in order
         all_dates = [d for d, _ in interpreter_date_range_map]
         table = {}
         for date in all_dates:
@@ -272,13 +271,13 @@ if language_selected:
                     table[date]["B조-심사위원"] += count
                 elif role == "참가자":
                     table[date]["B조-참가자"] += count
-        # Build DataFrame
         rows = []
         for date in all_dates:
             row = {"날짜": date}
             row.update(table[date])
             rows.append(row)
+        import pandas as pd
         df = pd.DataFrame(rows)
-        st.dataframe(df, hide_index=True)
+        st.table(df)
     except Exception as e:
         st.error(f"빈자리 확인 중 오류 발생: {e}")
